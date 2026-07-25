@@ -678,10 +678,13 @@ const app = express()
 app.use(express.json())
 
 app.get('/', (_, res) => res.send('🤖 Madar Bot is running'))
+app.get('/health', (_, res) => res.json({ ok: true }))
 
 console.log('🤖 Madar Bot starting...')
 try {
   await setupFirebaseAuth()
+
+  app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Server listening on port ${PORT}`))
 
   if (BASE_URL) {
     const path = '/webhook'
@@ -689,8 +692,7 @@ try {
     await bot.api.setWebhook(`${BASE_URL}${path}`)
     console.log(`✅ Webhook set: ${BASE_URL}${path}`)
   } else {
-    app.listen(PORT, () => console.log(`Listening on port ${PORT}`))
-    console.log('Starting in polling mode...')
-    await bot.start({ onStart: b => console.log(`✅ @${b.username} running (polling)! Admin: ${ADMIN_ID}`) })
+    console.log('No webhook URL found — starting polling mode...')
+    bot.start({ onStart: b => console.log(`✅ @${b.username} running (polling)! Admin: ${ADMIN_ID}`) })
   }
 } catch (e) { console.error('❌', e.message); process.exit(1) }
