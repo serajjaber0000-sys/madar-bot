@@ -259,21 +259,27 @@ bot.on('message:photo', async (ctx) => {
   try {
     const photo = ctx.message.photo[ctx.message.photo.length - 1]
     const file = await ctx.api.getFile(photo.file_id)
-    const url = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`
+    const tgUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`
+    const imgRes = await fetch(tgUrl)
+    const buf = Buffer.from(await imgRes.arrayBuffer())
+    const b64 = buf.toString('base64')
     const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
-    const fd = new FormData()
-    const imgRes = await fetch(url)
-    const blob = await imgRes.blob()
-    fd.append('image', blob, 'doctor.jpg')
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, { method: 'POST', body: fd })
+    const formBody = 'image=' + encodeURIComponent(b64)
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formBody
+    })
     const data = await res.json()
     if (data.success) {
+      console.log('Photo uploaded:', data.data.url)
       await saveListing(ctx, s, data.data.url)
     } else {
+      console.error('imgbb error:', JSON.stringify(data))
       await saveListing(ctx, s, '')
     }
   } catch (e) {
-    console.error('Photo upload error:', e.message)
+    console.error('Photo upload error:', e.message, e.stack)
     await saveListing(ctx, s, '')
   }
 })
