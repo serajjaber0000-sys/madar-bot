@@ -1060,7 +1060,9 @@ watch(reviews, (list) => {
   if (reviewCarouselIndex.value >= list.length) {
     reviewCarouselIndex.value = 0
   }
-  startReviewCarousel()
+  if (!reviewCarouselTimer && list.length > 1) {
+    startReviewCarousel()
+  }
 })
 
 watch(clinicId, () => {

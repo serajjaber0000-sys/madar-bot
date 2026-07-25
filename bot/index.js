@@ -682,17 +682,22 @@ app.get('/health', (_, res) => res.json({ ok: true }))
 
 console.log('🤖 Madar Bot starting...')
 try {
-  await setupFirebaseAuth()
+  setupFirebaseAuth().catch(e => console.error('⚠️ Firebase Auth setup failed:', e.message))
+
+  const webhookPath = '/webhook'
+  app.post(webhookPath, (req, res) => {
+    webhookCallback(bot, 'express')(req, res).catch(e => {
+      console.error('⚠️ Webhook error:', e.message)
+      if (!res.headersSent) res.status(500).send('OK')
+    })
+  })
 
   app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Server listening on port ${PORT}`))
 
   if (BASE_URL) {
-    const path = '/webhook'
-    app.post(path, webhookCallback(bot, 'express'))
-    await bot.api.setWebhook(`${BASE_URL}${path}`)
-    console.log(`✅ Webhook set: ${BASE_URL}${path}`)
+    await bot.api.setWebhook(`${BASE_URL}${webhookPath}`)
+    console.log(`✅ Webhook set: ${BASE_URL}${webhookPath}`)
   } else {
-    console.log('No webhook URL found — starting polling mode...')
-    bot.start({ onStart: b => console.log(`✅ @${b.username} running (polling)! Admin: ${ADMIN_ID}`) })
+    console.log('No webhook URL — waiting for manual webhook or starting polling...')
   }
 } catch (e) { console.error('❌', e.message); process.exit(1) }
