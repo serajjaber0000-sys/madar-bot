@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: madar-bot
     runtime: node
     plan: free

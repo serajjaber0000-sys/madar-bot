@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import { Bot, InlineKeyboard } from 'grammy'
+import express from 'express'
+import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore'
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
@@ -669,8 +670,27 @@ bot.callbackQuery(/^bp:(.+)$/, async (ctx) => {
 bot.catch(e => console.error('[CATCH]', e.message))
 
 // ═══════════════════════════════════════
+// START
+// ═══════════════════════════════════════
+const PORT = process.env.PORT || 3000
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL || ''
+const app = express()
+app.use(express.json())
+
+app.get('/', (_, res) => res.send('🤖 Madar Bot is running'))
+
 console.log('🤖 Madar Bot starting...')
 try {
   await setupFirebaseAuth()
-  bot.start({ onStart: b => console.log(`✅ @${b.username} running! Admin: ${ADMIN_ID}`) })
+
+  if (RENDER_URL) {
+    const path = '/webhook'
+    app.post(path, webhookCallback(bot, 'express'))
+    await bot.api.setWebhook(`${RENDER_URL}${path}`)
+    console.log(`✅ Webhook set: ${RENDER_URL}${path}`)
+  } else {
+    app.listen(PORT, () => console.log(`Listening on port ${PORT}`))
+    console.log('Starting in polling mode...')
+    await bot.start({ onStart: b => console.log(`✅ @${b.username} running (polling)! Admin: ${ADMIN_ID}`) })
+  }
 } catch (e) { console.error('❌', e.message); process.exit(1) }
