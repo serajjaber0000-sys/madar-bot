@@ -673,7 +673,7 @@ bot.catch(e => console.error('[CATCH]', e.message))
 // START
 // ═══════════════════════════════════════
 const PORT = process.env.PORT || 3000
-const RENDER_URL = process.env.RENDER_EXTERNAL_URL || ''
+const BASE_URL = process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_PUBLIC_DOMAIN || process.env.APP_URL || process.env.WEBHOOK_URL || ''
 const app = express()
 app.use(express.json())
 
@@ -683,11 +683,11 @@ console.log('🤖 Madar Bot starting...')
 try {
   await setupFirebaseAuth()
 
-  if (RENDER_URL) {
+  if (BASE_URL) {
     const path = '/webhook'
     app.post(path, webhookCallback(bot, 'express'))
-    await bot.api.setWebhook(`${RENDER_URL}${path}`)
-    console.log(`✅ Webhook set: ${RENDER_URL}${path}`)
+    await bot.api.setWebhook(`${BASE_URL}${path}`)
+    console.log(`✅ Webhook set: ${BASE_URL}${path}`)
   } else {
     app.listen(PORT, () => console.log(`Listening on port ${PORT}`))
     console.log('Starting in polling mode...')

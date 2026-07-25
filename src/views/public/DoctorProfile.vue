@@ -439,33 +439,31 @@
 
           <!-- Reviews Carousel -->
           <div class="dp-reviews-carousel dp-card-full">
-            <template v-if="reviews.length">
-              <div style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                  <div class="dp-review-avatar" :style="{ background: getAvatarColor(reviews[reviewCarouselIndex]?.patient_name) }">
-                    {{ (reviews[reviewCarouselIndex]?.patient_name || 'م')[0] }}
-                  </div>
-                  <div>
-                    <span class="dp-review-name">{{ reviews[reviewCarouselIndex]?.patient_name || 'مجهول' }}</span>
-                    <div class="dp-review-stars" style="margin-top:2px">
-                      <svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="14" height="14"
-                           :fill="s <= (reviews[reviewCarouselIndex]?.rating || 0) ? '#f59e0b' : 'none'"
-                           :stroke="s <= (reviews[reviewCarouselIndex]?.rating || 0) ? '#f59e0b' : '#d1d5db'" stroke-width="2">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                      </svg>
-                    </div>
+            <div v-if="currentReview" style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <div class="dp-review-avatar" :style="{ background: getAvatarColor(currentReview.patient_name) }">
+                  {{ (currentReview.patient_name || 'م')[0] }}
+                </div>
+                <div>
+                  <span class="dp-review-name">{{ currentReview.patient_name || 'مجهول' }}</span>
+                  <div class="dp-review-stars" style="margin-top:2px">
+                    <svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="14" height="14"
+                         :fill="s <= (currentReview.rating || 0) ? '#f59e0b' : 'none'"
+                         :stroke="s <= (currentReview.rating || 0) ? '#f59e0b' : '#d1d5db'" stroke-width="2">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
                   </div>
                 </div>
-                <p v-if="reviews[reviewCarouselIndex]?.comment" style="font-size:0.88rem; color:#334155; line-height:1.7; margin:0;">{{ reviews[reviewCarouselIndex].comment }}</p>
-                <p v-else style="font-size:0.88rem; color:#94a3b8; font-style:italic; margin:0;">بدون تعليق</p>
               </div>
-              <div v-if="reviews.length > 1" class="dp-carousel-dots">
-                <button v-for="(_, idx) in reviews" :key="idx"
-                        :class="['dp-carousel-dot', idx === reviewCarouselIndex && 'active']"
-                        @click.stop="reviewCarouselIndex = idx"></button>
-              </div>
-            </template>
+              <p v-if="currentReview.comment" style="font-size:0.88rem; color:#334155; line-height:1.7; margin:0;">{{ currentReview.comment }}</p>
+              <p v-else style="font-size:0.88rem; color:#94a3b8; font-style:italic; margin:0;">بدون تعليق</p>
+            </div>
             <p v-else style="text-align:center; color:#94a3b8; padding:20px 0; margin:0; font-size:0.88rem;">لا توجد تقييمات بعد</p>
+            <div v-if="reviews.length > 1" class="dp-carousel-dots">
+              <button v-for="(_, idx) in reviews" :key="idx"
+                      :class="['dp-carousel-dot', idx === reviewCarouselIndex && 'active']"
+                      @click.stop="reviewCarouselIndex = idx"></button>
+            </div>
           </div>
 
           <!-- Review Form -->
@@ -724,6 +722,7 @@ const bookingPosition = ref(0)
 
 // Review carousel
 const reviewCarouselIndex = ref(0)
+const currentReview = computed(() => reviews.value[reviewCarouselIndex.value] || null)
 let reviewCarouselTimer = null
 function startReviewCarousel() {
   if (reviewCarouselTimer) clearInterval(reviewCarouselTimer)
@@ -1057,15 +1056,11 @@ async function loadProfile() {
 }
 
 // Watchers
-let carouselStarted = false
 watch(reviews, (list) => {
-  if (!carouselStarted && list.length > 0) {
-    carouselStarted = true
-    reviewCarouselIndex.value = 0
-    startReviewCarousel()
-  } else if (reviewCarouselIndex.value >= list.length) {
+  if (reviewCarouselIndex.value >= list.length) {
     reviewCarouselIndex.value = 0
   }
+  startReviewCarousel()
 })
 
 watch(clinicId, () => {

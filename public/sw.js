@@ -1,4 +1,4 @@
-const CACHE = 'madar-v3'
+const CACHE = 'madar-' + Date.now()
 
 self.addEventListener('install', () => {
   self.skipWaiting()
