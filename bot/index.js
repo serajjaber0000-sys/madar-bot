@@ -245,6 +245,53 @@ bot.callbackQuery(/^c:rok:(.+)$/, async (ctx) => {
   } catch (e) { console.error('c:rok:', e.message) }
 })
 
+bot.callbackQuery('dl:skipphoto', async (ctx) => {
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dl_photo') return
+  await saveListing(ctx, s, '')
+})
+
+bot.on('message:photo', async (ctx) => {
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dl_photo') return
+  await ctx.reply('⏳ جاري رفع الصورة...')
+  try {
+    const photo = ctx.message.photo[ctx.message.photo.length - 1]
+    const file = await ctx.api.getFile(photo.file_id)
+    const url = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`
+    const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
+    const fd = new FormData()
+    const imgRes = await fetch(url)
+    const blob = await imgRes.blob()
+    fd.append('image', blob, 'doctor.jpg')
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, { method: 'POST', body: fd })
+    const data = await res.json()
+    if (data.success) {
+      await saveListing(ctx, s, data.data.url)
+    } else {
+      await saveListing(ctx, s, '')
+    }
+  } catch (e) {
+    console.error('Photo upload error:', e.message)
+    await saveListing(ctx, s, '')
+  }
+})
+
+async function saveListing(ctx, s, photoUrl) {
+  try {
+    await addDoc(collection(db, 'directory_listings'), {
+      doctor_name: s.data.doctor_name, specialty: s.data.specialty,
+      governorate: s.data.governorate, phone: s.data.phone, whatsapp: s.data.whatsapp,
+      address: s.data.address, photoUrl, area: '', doctor_bio: '',
+      view_count: 0, rating_avg: 0, rating_count: 0,
+      enabled: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+    })
+    clearS(ctx.chat.id)
+    await ctx.reply(`✅ <b>د. ${s.data.doctor_name}</b> تمت إضافته!${photoUrl ? ' 📸' : ''}`, { parse_mode: 'HTML', reply_markup: mainKb('admin') })
+  } catch (e) { console.error('saveListing:', e.message); await ctx.reply('❌ خطأ في الحفظ') }
+}
+
 // ═══════════════════════════════════════
 // CREATE CLINIC
 // ═══════════════════════════════════════
@@ -520,7 +567,7 @@ bot.callbackQuery('dl:new', async (ctx) => {
   if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'dl_name'; s.data = {}
-  await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/6:</b> اسم الطبيب`, {
+  await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/7:</b> اسم الطبيب`, {
     reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back')
   })
 })
@@ -543,34 +590,25 @@ bot.on('message:text', async (ctx) => {
     // ── DIRECTORY LISTING ──
     if (s.step === 'dl_name') { s.data.doctor_name = text; s.step = 'dl_spec'
       const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
-      return ctx.reply('🩺 التخصص:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🩺 <b>2/7</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
     if (s.step === 'dl_spec') { if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
       s.data.specialty = text; s.step = 'dl_gov'
       const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-      return ctx.reply('🏛️ المحافظة:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🏛️ <b>3/7</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
     if (s.step === 'dl_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
       s.data.governorate = text; s.step = 'dl_phone'
-      return ctx.reply('📱 الهاتف (- للتخطي):', { reply_markup: { remove_keyboard: true } })
+      return ctx.reply('📱 <b>4/7</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
     }
     if (s.step === 'dl_phone') { s.data.phone = text === '-' ? '' : text; s.step = 'dl_wa'
-      return ctx.reply('💬 الواتساب (- للتخطي):')
+      return ctx.reply('💬 <b>5/7</b> الواتساب (- للتخطي):', { parse_mode: 'HTML' })
     }
     if (s.step === 'dl_wa') { s.data.whatsapp = text === '-' ? '' : text; s.step = 'dl_addr'
-      return ctx.reply('📍 العنوان (- للتخطي):')
+      return ctx.reply('📍 <b>6/7</b> العنوان (- للتخطي):', { parse_mode: 'HTML' })
     }
-    if (s.step === 'dl_addr') {
-      s.data.address = text === '-' ? '' : text
-      await addDoc(collection(db, 'directory_listings'), {
-        doctor_name: s.data.doctor_name, specialty: s.data.specialty,
-        governorate: s.data.governorate, phone: s.data.phone, whatsapp: s.data.whatsapp,
-        address: s.data.address, photoUrl: '', area: '', doctor_bio: '',
-        view_count: 0, rating_avg: 0, rating_count: 0,
-        enabled: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-      })
-      clearS(ctx.chat.id)
-      return ctx.reply(`✅ <b>د. ${s.data.doctor_name}</b> تمت إضافته!`, { parse_mode: 'HTML', reply_markup: mainKb('admin') })
+    if (s.step === 'dl_addr') { s.data.address = text === '-' ? '' : text; s.step = 'dl_photo'
+      return ctx.reply('📸 صورة الطبيب (ارسل صورة أو اكتب - للتخطي):', { reply_markup: new InlineKeyboard().text('⏭️تخطي', 'dl:skipphoto') })
     }
 
     // ── CREATE CLINIC ──
