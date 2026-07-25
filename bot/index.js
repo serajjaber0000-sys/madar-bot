@@ -166,7 +166,7 @@ bot.callbackQuery('open:web', async (ctx) => {
 // CLINIC LIST
 // ═══════════════════════════════════════
 bot.callbackQuery('c:list', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 }) }
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     let snap
@@ -215,7 +215,7 @@ bot.callbackQuery(/^c:show:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^c:tg:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDoc(doc(db, 'clinics', ctx.match[1]))
@@ -229,7 +229,7 @@ bot.callbackQuery(/^c:tg:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^c:rm:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   await edit(ctx, `⚠️ <b>تأكيد الحذف</b>\nهل أنت متأكد؟`, {
     reply_markup: new InlineKeyboard().text('✅ نعم', `c:rok:${ctx.match[1]}`).text('❌ لا', `c:show:${ctx.match[1]}`)
@@ -237,7 +237,7 @@ bot.callbackQuery(/^c:rm:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^c:rok:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     await deleteDoc(doc(db, 'clinics', ctx.match[1]))
@@ -249,7 +249,7 @@ bot.callbackQuery(/^c:rok:(.+)$/, async (ctx) => {
 // CREATE CLINIC
 // ═══════════════════════════════════════
 bot.callbackQuery('c:new', async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'c_name'; s.data = {}
   await edit(ctx, `🏥 <b>إنشاء عيادة</b>\n${DIV}\n\nالخطوة <b>1/8</b>: اسم العيادة`, {
@@ -261,7 +261,7 @@ bot.callbackQuery('c:new', async (ctx) => {
 // EDIT CLINIC
 // ═══════════════════════════════════════
 bot.callbackQuery(/^c:ed:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const id = ctx.match[1]
   await edit(ctx, `✏️ <b>تعديل العيادة</b>\n${DIV}`, {
@@ -275,7 +275,7 @@ bot.callbackQuery(/^c:ed:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^ef:plan:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const id = ctx.match[1]
   await edit(ctx, `📊 <b>اختر الباقة:</b>`, {
@@ -288,7 +288,7 @@ bot.callbackQuery(/^ef:plan:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^efv:(.+):plan:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     await updateDoc(doc(db, 'clinics', ctx.match[1]), { plan: ctx.match[2] })
@@ -299,7 +299,7 @@ bot.callbackQuery(/^efv:(.+):plan:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^ef:(\w+):(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const field = ctx.match[1], id = ctx.match[2]
   const s = getS(ctx.chat.id)
@@ -320,7 +320,7 @@ bot.callbackQuery(/^ef:(\w+):(.+)$/, async (ctx) => {
 // SEARCH
 // ═══════════════════════════════════════
 bot.callbackQuery('c:find', async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'search'
   await edit(ctx, `🔍 <b>اكتب للبحث:</b>`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
@@ -330,14 +330,14 @@ bot.callbackQuery('c:find', async (ctx) => {
 // FOUNDERS
 // ═══════════════════════════════════════
 bot.callbackQuery('f:new', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'f_name'
   await edit(ctx, `➕ <b>إضافة مؤسس</b>\n${DIV}\n\n<b>1/3:</b> الاسم`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
 })
 
 bot.callbackQuery('f:list', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDocs(query(collection(db, 'bot_founders'), orderBy('created_at', 'desc')))
@@ -355,7 +355,7 @@ bot.callbackQuery('f:list', async (ctx) => {
 })
 
 bot.callbackQuery(/^f:rm:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   await edit(ctx, `⚠️ <b>حذف المؤسس؟</b>`, {
     reply_markup: new InlineKeyboard().text('✅ نعم', `f:rok:${ctx.match[1]}`).text('❌ لا', 'f:list')
@@ -363,7 +363,7 @@ bot.callbackQuery(/^f:rm:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^f:rok:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try { await deleteDoc(doc(db, 'bot_founders', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
 })
@@ -372,7 +372,7 @@ bot.callbackQuery(/^f:rok:(.+)$/, async (ctx) => {
 // STATS
 // ═══════════════════════════════════════
 bot.callbackQuery('stats', async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const [fc, cc, pc, dc] = await Promise.all([
@@ -445,7 +445,7 @@ bot.callbackQuery('my:profile', async (ctx) => {
 // DIRECTORY LISTINGS
 // ═══════════════════════════════════════
 bot.callbackQuery('dl:list', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDocs(query(collection(db, 'directory_listings'), orderBy('created_at', 'desc')))
@@ -464,7 +464,7 @@ bot.callbackQuery('dl:list', async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
@@ -489,7 +489,7 @@ bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
@@ -503,7 +503,7 @@ bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:rm:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   await edit(ctx, `⚠️ <b>حذف الطبيب؟</b>`, {
     reply_markup: new InlineKeyboard().text('✅ نعم', `dl:rok:${ctx.match[1]}`).text('❌ لا', 'dl:list')
@@ -511,13 +511,13 @@ bot.callbackQuery(/^dl:rm:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:rok:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try { await deleteDoc(doc(db, 'directory_listings', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
 })
 
 bot.callbackQuery('dl:new', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'dl_name'; s.data = {}
   await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/6:</b> اسم الطبيب`, {
@@ -641,7 +641,7 @@ bot.on('message:text', async (ctx) => {
 // PLAN SELECTION
 // ═══════════════════════════════════════
 bot.callbackQuery(/^bp:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery('⛔', { cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const plan = ctx.match[1]
   const s = getS(ctx.chat.id)
