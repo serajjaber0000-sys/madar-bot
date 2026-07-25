@@ -75,7 +75,17 @@
                     {{ profile.governorate || '' }}{{ profile.governorate && profile.area ? ' - ' : '' }}{{ profile.area || '' }}
                   </span>
                 </div>
-
+                <div class="dp-hero-rating" v-if="profile.rating_count > 0">
+                  <span class="dp-stars-static">
+                    <svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="16" height="16"
+                         :fill="s <= Math.round(profile.rating_avg) ? '#f59e0b' : 'none'"
+                         :stroke="s <= Math.round(profile.rating_avg) ? '#f59e0b' : 'rgba(255,255,255,0.4)'" stroke-width="2">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </span>
+                  <span class="dp-rating-num">{{ profile.rating_avg }}</span>
+                  <span class="dp-rating-count">{{ profile.rating_count }} تقييم</span>
+                </div>
               </div>
             </div>
 
@@ -167,6 +177,9 @@
         <div class="dp-tabs" role="tablist">
           <button :class="['dp-tab', activeTab === 'about' && 'active']" @click="activeTab = 'about'" role="tab" aria-selected="activeTab === 'about'">النبذة</button>
           <button :class="['dp-tab', activeTab === 'schedule' && 'active']" @click="activeTab = 'schedule'" role="tab" aria-selected="activeTab === 'schedule'">الجدول</button>
+          <button :class="['dp-tab', activeTab === 'reviews' && 'active']" @click="activeTab = 'reviews'" role="tab" aria-selected="activeTab === 'reviews'">
+            التقييمات ({{ reviews.length }})
+          </button>
         </div>
       </div>
 
@@ -393,6 +406,90 @@
           </div>
           <div v-else class="dp-empty-state">
             <p>لم تُحدّد أوقات الدوام بعد</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reviews Tab -->
+      <div v-show="activeTab === 'reviews'" class="dp-content" role="tabpanel">
+        <div class="dp-content-inner">
+          <div class="dp-review-summary dp-card-full" v-if="reviews.length">
+            <div class="dp-summary-left">
+              <div class="dp-summary-big">{{ profile.rating_avg || '0.0' }}</div>
+              <div class="dp-summary-stars">
+                <svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="20" height="20"
+                     :fill="s <= Math.round(profile.rating_avg || 0) ? '#f59e0b' : 'none'"
+                     :stroke="s <= Math.round(profile.rating_avg || 0) ? '#f59e0b' : '#d1d5db'" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
+              <div class="dp-summary-count">{{ reviews.length }} تقييم</div>
+            </div>
+            <div class="dp-summary-bars">
+              <div v-for="star in 5" :key="star" class="dp-bar-row">
+                <span class="dp-bar-label">{{ star }}</span>
+                <div class="dp-bar-track">
+                  <div class="dp-bar-fill" :style="{ width: getStarPercentage(star) + '%' }"></div>
+                </div>
+                <span class="dp-bar-pct">{{ getStarPercentage(star) }}%</span>
+              </div>
+            </div>
+          </div>
+          <div class="dp-reviews-carousel dp-card-full">
+            <div v-if="currentReview" style="background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05);">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <div class="dp-review-avatar" :style="{ background: getAvatarColor(currentReview.patient_name) }">
+                  {{ (currentReview.patient_name || 'م')[0] }}
+                </div>
+                <div>
+                  <span class="dp-review-name">{{ currentReview.patient_name || 'مجهول' }}</span>
+                  <div class="dp-review-stars" style="margin-top:2px">
+                    <svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="14" height="14"
+                         :fill="s <= (currentReview.rating || 0) ? '#f59e0b' : 'none'"
+                         :stroke="s <= (currentReview.rating || 0) ? '#f59e0b' : '#d1d5db'" stroke-width="2">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <p v-if="currentReview.comment" style="font-size:0.88rem; color:#334155; line-height:1.7; margin:0;">{{ currentReview.comment }}</p>
+              <p v-else style="font-size:0.88rem; color:#94a3b8; font-style:italic; margin:0;">بدون تعليق</p>
+            </div>
+            <p v-else style="text-align:center; color:#94a3b8; padding:20px 0; margin:0; font-size:0.88rem;">لا توجد تقييمات بعد</p>
+            <div v-if="reviews.length > 1" class="dp-carousel-dots">
+              <button v-for="(_, idx) in reviews" :key="idx"
+                      :class="['dp-carousel-dot', idx === reviewCarouselIndex && 'active']"
+                      @click.stop="reviewCarouselIndex = idx"></button>
+            </div>
+          </div>
+          <div class="dp-card dp-review-form dp-card-full">
+            <h3>شارك تجربتك</h3>
+            <div v-if="!hasReviewedBefore" class="dp-stars-input">
+              <button v-for="s in 5" :key="s" @click="newReview.rating = s"
+                      :class="['dp-star-btn', newReview.rating >= s && 'active']" aria-label="تقييم {{ s }} نجوم">
+                <svg viewBox="0 0 24 24" width="32" height="32"
+                     :fill="newReview.rating >= s ? '#f59e0b' : 'none'"
+                     :stroke="newReview.rating >= s ? '#f59e0b' : '#d1d5db'" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </button>
+            </div>
+            <div v-else class="dp-returning-note">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0d9488" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span>لقد قيّمت هذا الطبيب مسبقاً. يمكنك إضافة تعليق إضافي فقط.</span>
+            </div>
+            <input v-model="newReview.patient_name" type="text" placeholder="اسمك (اختياري)" class="dp-input" />
+            <textarea v-model="newReview.comment" :placeholder="hasReviewedBefore ? 'أضف تعليقاً إضافياً...' : 'اكتب رأيك...'" class="dp-textarea" rows="3"></textarea>
+            <button class="dp-submit-btn" @click="submitReview" :disabled="reviewSubmitting || !newReview.comment.trim()">
+              {{ reviewSubmitting ? 'جاري الإرسال...' : 'إرسال التقييم' }}
+            </button>
+          </div>
+          <div v-if="reviews.length === 0" class="dp-empty-state">
+            <p>لا توجد تقييمات حتى الآن</p>
           </div>
         </div>
       </div>

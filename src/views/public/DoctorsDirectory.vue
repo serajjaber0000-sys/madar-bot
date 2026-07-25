@@ -135,29 +135,6 @@
       </div>
     </section>
 
-    <!-- ============ REVIEWS MARQUEE ============ -->
-    <section v-if="reviews.length && activeCategory === 'doctors' && !hasActiveFilters && !searchQuery" class="tb-section">
-      <div class="tb-sec-header"><h2>آراء المرضى</h2></div>
-      <div class="tb-rev-track-outer" @mouseenter="reviewPaused = true" @mouseleave="reviewPaused = false" @touchstart.passive="reviewPaused = true" @touchend.passive="setTimeout(() => { reviewPaused = false }, 100)">
-        <div class="tb-rev-track" :class="{ paused: reviewPaused }">
-          <div v-for="(rev, idx) in reviewLoop" :key="'r1-' + idx" class="tb-rev-card">
-            <div class="tb-rev-top">
-              <div class="tb-rev-avatar">{{ (rev.patient_name || 'م')[0] }}</div>
-              <div class="tb-rev-meta">
-                <span class="tb-rev-name">{{ rev.patient_name || 'مريض' }}</span>
-                <div class="tb-rev-stars"><svg v-for="s in 5" :key="s" viewBox="0 0 24 24" width="11" height="11" :fill="s <= rev.rating ? '#f59e0b' : '#e2e8f0'" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg></div>
-              </div>
-            </div>
-            <p class="tb-rev-comment">{{ rev.comment }}</p>
-            <div class="tb-rev-footer">
-              <span class="tb-rev-doctor">د. {{ rev._doctorName || '' }}</span>
-              <span class="tb-rev-date">{{ formatDate(rev.created_at) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ============ MAIN LIST ============ -->
     <section class="tb-section tb-main-section">
       <div class="tb-sec-header" v-if="!loading"><h2>{{ categoryLabel }}</h2></div>
@@ -204,10 +181,6 @@
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                 {{ doc.governorate || '' }}{{ doc.governorate && doc.area ? ' - ' : '' }}{{ doc.area || '' }}
               </span>
-              <span class="tb-card-rating" v-if="doc.rating_count">
-                <svg viewBox="0 0 24 24" width="12" height="12" fill="#f59e0b" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                {{ doc.rating_avg || 0 }}
-              </span>
             </div>
           </div>
 
@@ -244,9 +217,7 @@ const menuOpen = ref(false)
 const filterOpen = ref(false)
 const activeCategory = ref('doctors') // 'doctors' | 'pharmacy' | 'hospital' | 'lab' | 'physio'
 const favorites = ref(JSON.parse(localStorage.getItem('madar_favorites') || '[]'))
-const reviewData = shallowRef([])
 const visibleCount = ref(20)
-const reviewPaused = ref(false)
 const slides = shallowRef([])
 const sliderIndex = ref(0)
 const sliderPaused = ref(false)
