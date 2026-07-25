@@ -108,8 +108,17 @@
                 <input v-model="form.address" placeholder="عنوان العيادة بالتفصيل" />
               </div>
               <div class="dl-field">
-                <label>رابط الصورة</label>
-                <input v-model="form.photoUrl" placeholder="https://..." dir="ltr" />
+                <label>صورة الطبيب</label>
+                <div class="dl-photo-upload">
+                  <img v-if="form.photoUrl" :src="form.photoUrl" class="dl-photo-preview" />
+                  <label class="dl-photo-btn">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    {{ form.photoUrl ? 'تغيير الصورة' : 'اختر صورة' }}
+                    <input type="file" accept="image/*" @change="onPhotoUpload" style="display:none" />
+                  </label>
+                  <button v-if="form.photoUrl" class="dl-photo-remove" @click="form.photoUrl = ''">&times;</button>
+                  <span v-if="uploadingPhoto" class="dl-photo-loading">جاري الرفع...</span>
+                </div>
               </div>
               <div class="dl-field">
                 <label>نبذة عن الطبيب</label>
@@ -170,6 +179,7 @@ import { directoryListingsRepo } from '@/services/clinic'
 
 const loading = ref(true)
 const saving = ref(false)
+const uploadingPhoto = ref(false)
 const listings = ref([])
 const showModal = ref(false)
 const showDeleteModal = ref(false)
@@ -234,6 +244,24 @@ function openEdit(item) {
     clinic_close_time: item.clinic_close_time || ''
   }
   showModal.value = true
+}
+
+async function onPhotoUpload(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  uploadingPhoto.value = true
+  try {
+    const fd = new FormData()
+    fd.append('image', file)
+    const key = import.meta.env.VITE_IMGBB_API_KEY
+    if (!key) { alert('مفتاح imgBB غير موجود'); return }
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${key}`, { method: 'POST', body: fd })
+    const data = await res.json()
+    if (data.success) form.value.photoUrl = data.data.url
+    else alert('فشل رفع الصورة')
+  } catch (err) { alert('خطأ في رفع الصورة: ' + err.message) }
+  uploadingPhoto.value = false
+  e.target.value = ''
 }
 
 async function save() {
@@ -343,6 +371,13 @@ onMounted(loadListings)
 .dl-field input,.dl-field select,.dl-field textarea{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e2e8f0;font:600 0.82rem 'Segoe UI',sans-serif;color:#0f172a;background:#f8fafc;outline:none;transition:border-color 0.2s}
 .dl-field input:focus,.dl-field select:focus,.dl-field textarea:focus{border-color:#0d9488;background:#fff}
 .dl-field textarea{resize:vertical;min-height:60px}
+
+.dl-photo-upload{display:flex;align-items:center;gap:10px}
+.dl-photo-preview{width:64px;height:64px;border-radius:12px;object-fit:cover;border:2px solid #e2e8f0}
+.dl-photo-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:1.5px dashed #0d9488;background:#f0fdf9;color:#0d9488;font:600 0.78rem 'Segoe UI',sans-serif;cursor:pointer;transition:all 0.2s}
+.dl-photo-btn:hover{background:#0d9488;color:#fff;border-style:solid}
+.dl-photo-remove{background:none;border:none;font-size:1.2rem;color:#ef4444;cursor:pointer;padding:4px 8px}
+.dl-photo-loading{font-size:0.75rem;color:#94a3b8}
 
 .modal-fade-enter-active,.modal-fade-leave-active{transition:all 0.25s ease}
 .modal-fade-enter-from,.modal-fade-leave-to{opacity:0}
