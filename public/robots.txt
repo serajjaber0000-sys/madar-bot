@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /super-admin
+Disallow: /clinic
+Disallow: /login
+Disallow: /onboarding
+Disallow: /forgot-password
+Disallow: /maintenance
+
+Sitemap: https://asaas-5eb13.web.app/sitemap.xml

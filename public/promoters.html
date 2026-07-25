@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مدار – برنامج المروجين</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{font-family:'Cairo','Tajawal',system-ui,sans-serif;background:#f0f5fa;color:#1e293b;line-height:1.7}
+
+    /* NAV */
+    .nav{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+    .nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:#0f172a}
+    .nav-brand img{width:36px;height:36px;border-radius:10px;object-fit:cover}
+    .nav-brand span{font:800 1.3rem 'Cairo',sans-serif}
+    .nav-tabs{display:flex;gap:4px}
+    .nav-tab{padding:8px 20px;border-radius:10px;border:none;background:transparent;color:#64748b;font:600 0.85rem 'Cairo',sans-serif;cursor:pointer;transition:all 0.2s}
+    .nav-tab:hover{color:#1150c9;background:#f1f5f9}
+    .nav-tab.active{color:#fff;background:#1150c9}
+    .nav-contact{display:flex;gap:8px}
+    .nav-contact a{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all 0.2s}
+    .wa{background:#f0fdf4;color:#16a34a;border:1px solid #dcfce7}
+    .wa:hover{background:#dcfce7}
+    .tg{background:#f0f9ff;color:#0284c7;border:1px solid #e0f2fe}
+    .tg:hover{background:#e0f2fe}
+
+    /* SECTIONS */
+    .page{display:none;padding:40px 24px 60px;max-width:1100px;margin:0 auto}
+    .page.active{display:block}
+
+    /* HERO */
+    .hero{text-align:center;padding:48px 24px 36px;background:linear-gradient(135deg,#1150c9,#0d9488);border-radius:20px;margin-bottom:40px;color:#fff;position:relative;overflow:hidden}
+    .hero::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 60%);pointer-events:none}
+    .hero h1{font:900 2rem/1.3 'Cairo',sans-serif;margin:0 0 10px;position:relative}
+    .hero p{font:400 1rem 'Tajawal',sans-serif;opacity:0.9;max-width:550px;margin:0 auto 24px;position:relative}
+    .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative}
+    .btn{padding:12px 28px;border-radius:12px;font:700 0.9rem 'Cairo',sans-serif;border:none;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s}
+    .btn-white{background:#fff;color:#1150c9}
+    .btn-white:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.15)}
+    .btn-outline-white{background:transparent;border:2px solid rgba(255,255,255,0.4);color:#fff}
+    .btn-outline-white:hover{background:rgba(255,255,255,0.1);border-color:#fff}
+
+    /* SECTION HEADER */
+    .sec-header{text-align:center;margin-bottom:32px}
+    .sec-header h2{font:800 1.5rem/1.2 'Cairo',sans-serif;color:#0f172a;margin:0 0 6px}
+    .sec-header p{font:400 0.9rem 'Tajawal',sans-serif;color:#64748b}
+
+    /* PRICING TABLE */
+    .table-wrap{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.06);border:1px solid #e2e8f0}
+    table{width:100%;border-collapse:collapse}
+    thead{background:#1150c9}
+    thead th{padding:14px 16px;font:700 0.82rem 'Cairo',sans-serif;color:#fff;text-align:center}
+    tbody td{padding:16px;text-align:center;font:500 0.88rem 'Tajawal',sans-serif;color:#334155;border-bottom:1px solid #f1f5f9}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover{background:#f8fafc}
+    .highlight{color:#0d9488;font-weight:700}
+    .original{color:#94a3b8;text-decoration:line-through;font-size:0.8rem}
+    .badge{display:inline-block;padding:3px 10px;border-radius:6px;font:700 0.7rem 'Cairo',sans-serif}
+    .badge-gold{background:#fef3c7;color:#92400e}
+
+    /* CARDS GRID */
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:40px}
+    .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px 20px;text-align:center;transition:all 0.2s}
+    .card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.06);border-color:#1150c9}
+    .card-icon{font-size:2.2rem;margin-bottom:10px}
+    .card-title{font:700 0.95rem 'Cairo',sans-serif;color:#0f172a;margin-bottom:4px}
+    .card-desc{font:400 0.8rem 'Tajawal',sans-serif;color:#64748b}
+    .card-desc strong{color:#1150c9;font-weight:700}
+
+    /* REWARD LIST */
+    .rewards{max-width:700px;margin:0 auto}
+    .reward{display:flex;align-items:center;gap:16px;padding:18px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;transition:all 0.2s}
+    .reward:hover{border-color:#1150c9;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
+    .reward-icon{font-size:1.6rem;flex-shrink:0;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:12px}
+    .reward-info{flex:1}
+    .reward-target{font:700 0.9rem 'Cairo',sans-serif;color:#0f172a}
+    .reward-amount{font:800 1.1rem 'Cairo',sans-serif;color:#1150c9}
+    .reward-bonus{font:400 0.75rem 'Tajawal',sans-serif;color:#64748b;margin-top:2px}
+
+    /* ANNUAL */
+    .annual{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
+    .annual-card{background:#fff;border:2px solid #e2e8f0;border-radius:16px;padding:32px 20px;text-align:center;transition:all 0.2s}
+    .annual-card:nth-child(1){border-color:#d69e1f}
+    .annual-card:nth-child(2){border-color:#94a3b8}
+    .annual-card:nth-child(3){border-color:#cd7f32}
+    .annual-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.06)}
+    .annual-medal{font-size:2.8rem;margin-bottom:10px}
+    .annual-rank{font:700 0.85rem 'Cairo',sans-serif;color:#64748b;margin-bottom:8px}
+    .annual-prize{font:900 1.5rem 'Cairo',sans-serif;color:#1150c9}
+    .annual-prize small{font:400 0.8rem 'Tajawal',sans-serif;color:#64748b}
+
+    /* CONDITIONS */
+    .conditions{max-width:700px;margin:0 auto 40px}
+    .cond{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:8px}
+    .cond svg{flex-shrink:0;color:#0d9488;margin-top:2px}
+    .cond p{font:500 0.85rem 'Tajawal',sans-serif;color:#334155;margin:0}
+
+    /* FOOTER */
+    .footer{text-align:center;padding:32px 24px;border-top:1px solid #e2e8f0;margin-top:40px}
+    .footer-contact{display:flex;gap:10px;justify-content:center;margin-bottom:12px;flex-wrap:wrap}
+    .footer-contact a{display:flex;align-items:center;gap:8px;padding:10px 20px;border-radius:12px;text-decoration:none;font:600 0.85rem 'Cairo',sans-serif;transition:all 0.2s}
+    .footer-copy{font:400 0.72rem 'Tajawal',sans-serif;color:#94a3b8}
+
+    /* MOBILE NAV */
+    .mobile-nav{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:5px;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+    @media(max-width:768px){.mobile-nav{display:flex;gap:4px}}
+    .mobile-nav button{flex:1;padding:10px 18px;border:none;border-radius:12px;background:transparent;color:#64748b;font:600 0.78rem 'Cairo',sans-serif;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+    .mobile-nav button.active{background:#1150c9;color:#fff}
+
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      .nav{padding:0 16px;height:56px}
+      .nav-tabs{display:none}
+      .nav-brand span{font-size:1.1rem}
+      .page{padding:24px 16px 80px}
+      .hero{padding:32px 20px 28px;border-radius:16px}
+      .hero h1{font-size:1.5rem}
+      .hero p{font-size:0.88rem}
+      .sec-header h2{font-size:1.3rem}
+      table{font-size:0.82rem}
+      thead th{padding:12px 10px;font-size:0.75rem}
+      tbody td{padding:12px 10px;font-size:0.8rem}
+      .cards{grid-template-columns:repeat(2,1fr);gap:10px}
+      .card{padding:16px 14px}
+      .card-icon{font-size:1.8rem}
+      .card-title{font-size:0.85rem}
+      .annual{grid-template-columns:1fr;gap:10px}
+      .annual-card{padding:24px 16px}
+      .reward{padding:14px 16px}
+    }
+    @media(max-width:480px){
+      .hero h1{font-size:1.3rem}
+      .cards{grid-template-columns:1fr 1fr}
+      .card{padding:14px 12px}
+      .card-desc{font-size:0.72rem}
+    }
+    @media(min-width:769px){
+      .cards-mobile{display:none}
+    }
+    @media(max-width:768px){
+      .cards-desktop{display:none}
+      .cards-mobile{display:grid}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a href="#" class="nav-brand">
+      <img src="/logo.jpg" alt="مدار" onerror="this.style.display='none'">
+      <span>مدار</span>
+    </a>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('home')">الرئيسية</button>
+      <button class="nav-tab" onclick="showPage('tiers')">المستويات والمكافآت</button>
+    </div>
+    <div class="nav-contact">
+      <a href="https://wa.me/9647807202286" target="_blank" class="wa" title="واتساب">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      </a>
+      <a href="https://t.me/Madar_System" target="_blank" class="tg" title="تيلكرام">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+      </a>
+    </div>
+  </nav>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="mobile-nav">
+    <button class="active" onclick="showPage('home')">الرئيسية</button>
+    <button onclick="showPage('tiers')">المستويات</button>
+  </div>
+
+  <!-- PAGE 1: HOME -->
+  <div id="page-home" class="page active">
+
+    <!-- HERO -->
+    <div class="hero">
+      <h1>اكسب عمولة مجزية مع كل اشتراك</h1>
+      <p>انضم لبرنامج المروجين في نظام مدار واكسب عمولات تصل إلى 25% على كل اشتراك جديد</p>
+      <div class="hero-cta">
+        <a href="https://t.me/+9mAxdYAXRKI3NDUy?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D8%A3%D9%88%D8%AF%20%D8%A7%D9%84%D8%A7%D9%86%D8%B6%D9%85%D8%A7%D9%85%20%D9%85%D8%B9%D9%83%D9%85%20%D9%83%D9%85%D8%B1%D9%88%D8%AC%20%D9%85%D9%8A%D8%AF%D8%A7%D9%86%D9%8A%20%D8%A8%D8%B9%D8%AF%20%D9%82%D8%B1%D8%A7%D8%A1%D8%A9%20%D8%AC%D9%85%D9%8A%D8%B9%20%D8%A7%D9%84%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20%D8%A7%D9%84%D8%AE%D8%A7%D8%B5%D8%A9%20%D8%A8%D8%A7%D9%84%D8%B9%D9%85%D9%88%D9%84%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%A7%D8%B4%D8%AA%D8%B1%D8%A7%D9%83%D8%A7%D8%AA" target="_blank" class="btn btn-white">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          سجّل الآن عبر التلكرام
+        </a>
+        <button onclick="showPage('tiers')" class="btn btn-outline-white">شاهد المستويات</button>
+      </div>
+    </div>
+
+    <!-- PRICING -->
+    <div class="sec-header">
+      <h2>أسعار الاشتراكات</h2>
+      <p>اختر الباقة المناسبة وابدأ بكسب العمولات فوراً</p>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:40px">
+      <table>
+        <thead>
+          <tr>
+            <th>مدة الاشتراك</th>
+            <th>سعر الاشتراك</th>
+            <th>نسبة المروج</th>
+            <th>عمولة المروج</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>شهر واحد</td>
+            <td>20,000 د.ع</td>
+            <td>20%</td>
+            <td class="highlight">4,000 د.ع</td>
+          </tr>
+          <tr>
+            <td>شهران</td>
+            <td>38,000 د.ع</td>
+            <td>20%</td>
+            <td class="highlight">7,600 د.ع</td>
+          </tr>
+          <tr>
+            <td>3 أشهر</td>
+            <td>55,000 د.ع</td>
+            <td>20%</td>
+            <td class="highlight">11,000 د.ع</td>
+          </tr>
+          <tr>
+            <td>6 أشهر</td>
+            <td>99,000 د.ع</td>
+            <td>25%</td>
+            <td class="highlight">24,750 د.ع</td>
+          </tr>
+          <tr style="background:#f0fdf4">
+            <td><span class="badge badge-gold">عرض الإطلاق</span> سنة كاملة</td>
+            <td><span class="highlight">149,000 د.ع</span> <span class="original">179,000</span></td>
+            <td>25%</td>
+            <td class="highlight" style="font-size:1rem">37,250 د.ع</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CONDITIONS -->
+    <div class="sec-header">
+      <h2>شروط استحقاق العمولة</h2>
+    </div>
+    <div class="conditions">
+      <div class="cond">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>تُصرف العمولة بعد اكتمال عملية الدفع وتفعيل الاشتراك</p>
+      </div>
+      <div class="cond">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>لا تُحتسب العمولة على الاشتراكات الملغاة أو المسترجعة</p>
+      </div>
+      <div class="cond">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>تُصرف العمولات والمكافآت شهرياً وفق سياسة الشركة</p>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-contact">
+        <a href="https://wa.me/9647807202286" target="_blank" class="wa">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          تواصل عبر الواتساب
+        </a>
+        <a href="https://t.me/Madar_System" target="_blank" class="tg">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          تواصل عبر التلكرام
+        </a>
+      </div>
+      <p class="footer-copy">مدار &copy; 2026 – جميع الحقوق محفوظة</p>
+    </div>
+  </div>
+
+  <!-- PAGE 2: TIERS & REWARDS -->
+  <div id="page-tiers" class="page">
+
+    <div class="hero">
+      <h1>ارتقِ بمستواك واكسب مكافآت أكبر</h1>
+      <p>كل ما زاد عدد اشتراكاتك، كل ما ارتفع مستواك ومكافآتك الشهرية والسنوية</p>
+      <div class="hero-cta">
+        <a href="https://t.me/+9mAxdYAXRKI3NDUy?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%20%D8%A3%D9%88%D8%AF%20%D8%A7%D9%84%D8%A7%D9%86%D8%B6%D9%85%D8%A7%D9%85%20%D9%85%D8%B9%D9%83%D9%85%20%D9%83%D9%85%D8%B1%D9%88%D8%AC%20%D9%85%D9%8A%D8%AF%D8%A7%D9%86%D9%8A%20%D8%A8%D8%B9%D8%AF%20%D9%82%D8%B1%D8%A7%D8%A1%D8%A9%20%D8%AC%D9%85%D9%8A%D8%B9%20%D8%A7%D9%84%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20%D8%A7%D9%84%D8%AE%D8%A7%D8%B5%D8%A9%20%D8%A8%D8%A7%D9%84%D8%B9%D9%85%D9%88%D9%84%D8%A7%D8%AA%20%D9%88%D8%A7%D9%84%D8%A7%D8%B4%D8%AA%D8%B1%D8%A7%D9%83%D8%A7%D8%AA" target="_blank" class="btn btn-white">ابدأ الآن</a>
+      </div>
+    </div>
+
+    <!-- TIERS -->
+    <div class="sec-header">
+      <h2>المستويات الشهرية</h2>
+      <p>الحد الأدنى للانطلاق هو 8 اشتراكات شهرياً</p>
+    </div>
+    <div class="cards" style="margin-bottom:48px">
+      <div class="card">
+        <div class="card-icon">🚀</div>
+        <div class="card-title">الحد الأدنى</div>
+        <div class="card-desc"><strong>8</strong> اشتراكات</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">✅</div>
+        <div class="card-title">مروج معتمد</div>
+        <div class="card-desc"><strong>15</strong> اشتراكاً</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⭐</div>
+        <div class="card-title">مروج متميز</div>
+        <div class="card-desc"><strong>25</strong> اشتراكاً</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">👑</div>
+        <div class="card-title">مروج نخبة</div>
+        <div class="card-desc"><strong>40</strong> اشتراكاً</div>
+      </div>
+      <div class="card" style="border-color:#d69e1f;background:#fffbeb">
+        <div class="card-icon">🏅</div>
+        <div class="card-title" style="color:#92400e">سفير مدار</div>
+        <div class="card-desc"><strong>60</strong> اشتراكاً فأكثر</div>
+      </div>
+    </div>
+
+    <!-- MONTHLY REWARDS -->
+    <div class="rewards">
+      <div class="sec-header">
+        <h2>مكافآت الأداء الشهرية</h2>
+        <p>كافأ نفسك كل شهر بأداء متميز</p>
+      </div>
+      <div class="reward">
+        <div class="reward-icon">🎖️</div>
+        <div class="reward-info">
+          <div class="reward-target">15 اشتراكاً شهرياً</div>
+          <div class="reward-amount">50,000 د.ع</div>
+        </div>
+      </div>
+      <div class="reward">
+        <div class="reward-icon">🏆</div>
+        <div class="reward-info">
+          <div class="reward-target">25 اشتراكاً شهرياً</div>
+          <div class="reward-amount">100,000 د.ع</div>
+        </div>
+      </div>
+      <div class="reward">
+        <div class="reward-icon">💎</div>
+        <div class="reward-info">
+          <div class="reward-target">40 اشتراكاً شهرياً</div>
+          <div class="reward-amount">200,000 د.ع</div>
+        </div>
+      </div>
+      <div class="reward">
+        <div class="reward-icon">🌟</div>
+        <div class="reward-info">
+          <div class="reward-target">60 اشتراكاً شهرياً</div>
+          <div class="reward-amount">350,000 د.ع</div>
+          <div class="reward-bonus">+ شهادة أفضل مروج للشهر</div>
+        </div>
+      </div>
+      <div class="reward" style="border-color:#d69e1f;background:#fffbeb">
+        <div class="reward-icon">🚀</div>
+        <div class="reward-info">
+          <div class="reward-target">100 اشتراكاً شهرياً</div>
+          <div class="reward-amount" style="font-size:1.2rem">750,000 د.ع</div>
+          <div class="reward-bonus">+ مكافأة خاصة من الإدارة</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANNUAL -->
+    <div class="rewards" style="margin-top:48px">
+      <div class="sec-header">
+        <h2>الحوافز السنوية</h2>
+        <p>أفضل three مروجين على مدار السنة</p>
+      </div>
+      <div class="annual">
+        <div class="annual-card">
+          <div class="annual-medal">🥇</div>
+          <div class="annual-rank">أفضل مروج في السنة</div>
+          <div class="annual-prize">2,000,000 <small>د.ع</small></div>
+        </div>
+        <div class="annual-card">
+          <div class="annual-medal">🥈</div>
+          <div class="annual-rank">المركز الثاني</div>
+          <div class="annual-prize">1,250,000 <small>د.ع</small></div>
+        </div>
+        <div class="annual-card">
+          <div class="annual-medal">🥉</div>
+          <div class="annual-rank">المركز الثالث</div>
+          <div class="annual-prize">750,000 <small>د.ع</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-contact">
+        <a href="https://wa.me/9647807202286" target="_blank" class="wa">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          تواصل عبر الواتساب
+        </a>
+        <a href="https://t.me/Madar_System" target="_blank" class="tg">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          تواصل عبر التلكرام
+        </a>
+      </div>
+      <p class="footer-copy">مدار &copy; 2026 – جميع الحقوق محفوظة</p>
+    </div>
+  </div>
+
+  <script>
+    function showPage(p) {
+      document.querySelectorAll('.page').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById('page-' + p).classList.add('active');
+      document.querySelectorAll('.nav-tab')[p === 'home' ? 0 : 1].classList.add('active');
+      document.querySelectorAll('.mobile-nav button')[p === 'home' ? 0 : 1].classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

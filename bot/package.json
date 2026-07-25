@@ -1,0 +1,16 @@
+{
+  "name": "madar-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "بوت مدار - إدارة حسابات الأطباء والعيادات",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "firebase": "^11.9.1",
+    "grammy": "^1.35.0"
+  }
+}

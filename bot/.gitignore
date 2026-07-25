@@ -1,0 +1,6 @@
+node_modules
+.env
+log.txt
+err.txt
+log2.txt
+err2.txt
