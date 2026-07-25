@@ -94,6 +94,7 @@ function mainKb(role) {
       .text('📊 إحصائيات', 'stats').text('🔍 بحث', 'c:find')
   } else if (role === 'founder') {
     kb.text('🏥 عياداتي', 'my:list').text('➕ جديدة', 'c:new').row()
+      .text('📋 الدليل', 'dl:list').text('➕ طبيب', 'dl:new').row()
       .text('📊 إحصائيات', 'stats').text('🔍 بحث', 'c:find').row()
       .text('👤 ملفي', 'my:profile')
   } else {
@@ -246,7 +247,7 @@ bot.callbackQuery(/^c:rok:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery('dl:skipphoto', async (ctx) => {
-  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   const s = getS(ctx.chat.id)
   if (s.step !== 'dl_photo') return
   await saveListing(ctx, s, '')
@@ -498,7 +499,7 @@ bot.callbackQuery('my:profile', async (ctx) => {
 // DIRECTORY LISTINGS
 // ═══════════════════════════════════════
 bot.callbackQuery('dl:list', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDocs(query(collection(db, 'directory_listings'), orderBy('created_at', 'desc')))
@@ -517,7 +518,7 @@ bot.callbackQuery('dl:list', async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
@@ -542,7 +543,7 @@ bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
@@ -556,7 +557,7 @@ bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:rm:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   await edit(ctx, `⚠️ <b>حذف الطبيب؟</b>`, {
     reply_markup: new InlineKeyboard().text('✅ نعم', `dl:rok:${ctx.match[1]}`).text('❌ لا', 'dl:list')
@@ -564,13 +565,13 @@ bot.callbackQuery(/^dl:rm:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dl:rok:(.+)$/, async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try { await deleteDoc(doc(db, 'directory_listings', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
 })
 
 bot.callbackQuery('dl:new', async (ctx) => {
-  if (!ok(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'dl_name'; s.data = {}
   await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/7:</b> اسم الطبيب`, {
