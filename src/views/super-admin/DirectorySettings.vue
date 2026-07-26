@@ -207,7 +207,7 @@ async function fetchDoctors() {
   loading.value = true
   error.value = null
   try {
-    const snapshot = await getDocs(collection(db, 'doctor_profiles'))
+    const snapshot = await getDocs(collection(db, 'directory_listings'))
     doctors.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
   } catch (e) {
     error.value = 'فشل في تحميل البيانات: ' + (e.message || 'خطأ غير معروف')
@@ -218,7 +218,7 @@ async function fetchDoctors() {
 
 async function updateDoctorField(doctorId, field, value) {
   try {
-    await updateDoc(doc(db, 'doctor_profiles', doctorId), { [field]: value })
+    await updateDoc(doc(db, 'directory_listings', doctorId), { [field]: value })
   } catch (e) {
     showToast('خطأ في الحفظ: ' + e.message, 'error')
   }
@@ -259,7 +259,7 @@ async function bulkAction(field, value) {
   if (!confirm(`هل أنت متأكد من ${value ? 'تفعيل' : 'إيقاف'} ${label} لجميع الأطباء؟`)) return
 
   try {
-    const promises = doctors.value.map(d => updateDoc(doc(db, 'doctor_profiles', d.id), { [field]: value }))
+    const promises = doctors.value.map(d => updateDoc(doc(db, 'directory_listings', d.id), { [field]: value }))
     await Promise.all(promises)
     doctors.value.forEach(d => { d[field] = value })
     showToast(`تم ${value ? 'تفعيل' : 'إيقاف'} ${label} لجميع الأطباء`)
