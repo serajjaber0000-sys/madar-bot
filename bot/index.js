@@ -5,6 +5,13 @@ import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, increment } from 'firebase/firestore'
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 
+process.on('unhandledRejection', (reason) => console.error('[CRASH] Unhandled rejection:', reason))
+process.on('uncaughtException', (err) => { console.error('[CRASH] Uncaught exception:', err.message); })
+
+function withTimeout(promise, ms = 15000) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms))])
+}
+
 const cfg = {
   apiKey: process.env.FIREBASE_API_KEY,
   authDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -46,14 +53,14 @@ async function getRole(ctx) {
     return 'founder'
   }
   try {
-    const fs = await getDocs(query(collection(db, 'bot_founders'), where('telegram_id', '==', tgId)))
+    const fs = await withTimeout(getDocs(query(collection(db, 'bot_founders'), where('telegram_id', '==', tgId))), 10000)
     if (!fs.empty) {
       const fid = fs.docs[0].id
       founderCache.set(tgId, { fid })
       store[cid] = store[cid] || {}; store[cid].role = 'founder'; store[cid].founderId = fid
       return 'founder'
     }
-  } catch (e) { }
+  } catch (e) { console.error('getRole query failed:', e.message) }
   store[cid] = store[cid] || {}; store[cid].role = 'guest'; return 'guest'
 }
 
@@ -178,22 +185,27 @@ async function downloadTelegramPhoto(ctx, photo) {
 // Firebase Auth
 // ═══════════════════════════════════════
 async function setupFirebaseAuth() {
-  let botUid = null
   try {
-    const cred = await signInWithEmailAndPassword(mainAuth, BOT_EMAIL, BOT_PASS)
-    botUid = cred.user.uid
-  } catch (e) {
-    if (['auth/user-not-found', 'auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'].includes(e.code)) {
-      const cred = await createUserWithEmailAndPassword(secAuth, BOT_EMAIL, BOT_PASS)
+    let botUid = null
+    try {
+      const cred = await withTimeout(signInWithEmailAndPassword(mainAuth, BOT_EMAIL, BOT_PASS), 10000)
       botUid = cred.user.uid
-      await signInWithEmailAndPassword(mainAuth, BOT_EMAIL, BOT_PASS)
-    } else throw e
-  }
-  const userSnap = await getDoc(doc(db, 'users', botUid))
-  if (!userSnap.exists()) {
-    await setDoc(doc(db, 'users', botUid), { fullName: 'بوت مدار', email: BOT_EMAIL, role: 'super_admin', clinicId: '', phone: '', photoUrl: '', createdAt: new Date().toISOString() })
-  } else if (userSnap.data().role !== 'super_admin') {
-    await updateDoc(doc(db, 'users', botUid), { role: 'super_admin' })
+    } catch (e) {
+      if (['auth/user-not-found', 'auth/invalid-credential', 'auth/wrong-password', 'auth/invalid-login-credentials'].includes(e.code)) {
+        const cred = await withTimeout(createUserWithEmailAndPassword(secAuth, BOT_EMAIL, BOT_PASS), 10000)
+        botUid = cred.user.uid
+        await withTimeout(signInWithEmailAndPassword(mainAuth, BOT_EMAIL, BOT_PASS), 10000)
+      } else throw e
+    }
+    const userSnap = await withTimeout(getDoc(doc(db, 'users', botUid)), 10000)
+    if (!userSnap.exists()) {
+      await withTimeout(setDoc(doc(db, 'users', botUid), { fullName: 'بوت مدار', email: BOT_EMAIL, role: 'super_admin', clinicId: '', phone: '', photoUrl: '', createdAt: new Date().toISOString() }), 10000)
+    } else if (userSnap.data().role !== 'super_admin') {
+      await withTimeout(updateDoc(doc(db, 'users', botUid), { role: 'super_admin' }), 10000)
+    }
+    console.log('✅ Firebase Auth setup OK')
+  } catch (e) {
+    console.error('⚠️ Firebase Auth setup failed:', e.message)
   }
 }
 
@@ -273,9 +285,9 @@ bot.callbackQuery('c:list', async (ctx) => {
   try {
     let snap
     if (store[ctx.chat.id]?.role === 'founder') {
-      snap = await getDocs(query(collection(db, 'clinics'), where('ownerUid', '==', store[ctx.chat.id].founderId), orderBy('createdAt', 'desc')))
+      snap = await withTimeout(getDocs(query(collection(db, 'clinics'), where('ownerUid', '==', store[ctx.chat.id].founderId), orderBy('createdAt', 'desc'))), 15000)
     } else {
-      snap = await getDocs(query(collection(db, 'clinics'), orderBy('createdAt', 'desc')))
+      snap = await withTimeout(getDocs(query(collection(db, 'clinics'), orderBy('createdAt', 'desc'))), 15000)
     }
     if (snap.empty) return edit(ctx, `<b>🏥 العيادات</b>\n${DIV}\n\n📭 لا توجد عيادات بعد.\nابدأ بإنشاء عيادتك!`, { reply_markup: new InlineKeyboard().text('➕ إنشاء', 'c:new').row().text('◀️ رجوع', 'back') })
     let msg = `<b>🏥 العيادات</b> — ${snap.size}\n${DIV}\n\n`
@@ -478,10 +490,10 @@ bot.callbackQuery('stats', async (ctx) => {
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const [fc, cc, pc, dlSnap] = await Promise.all([
-      getDocs(collection(db, 'bot_founders')),
-      getDocs(collection(db, 'clinics')),
-      getDocs(collection(db, 'patients')),
-      getDocs(collection(db, 'directory_listings'))
+      withTimeout(getDocs(collection(db, 'bot_founders')), 15000),
+      withTimeout(getDocs(collection(db, 'clinics')), 15000),
+      withTimeout(getDocs(collection(db, 'patients')), 15000),
+      withTimeout(getDocs(collection(db, 'directory_listings')), 15000)
     ])
     const active = cc.docs.filter(d => d.data().status === 'active').length
     await edit(ctx,
@@ -564,9 +576,9 @@ bot.callbackQuery('dp:list', async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
-      getDocs(collection(db, 'directory_listings')),
-      getDocs(collection(db, 'clinics')),
-      getDocs(collection(db, 'doctor_profiles'))
+      withTimeout(getDocs(collection(db, 'directory_listings')), 15000),
+      withTimeout(getDocs(collection(db, 'clinics')), 15000),
+      withTimeout(getDocs(collection(db, 'doctor_profiles')), 15000)
     ])
     const profileDocs = profileSnap.docs.filter(d => d.data().is_public === true)
     const allDocs = [
@@ -661,9 +673,9 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
   try {
     const filter = ctx.match[1]
     const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
-      getDocs(collection(db, 'directory_listings')),
-      getDocs(collection(db, 'clinics')),
-      getDocs(collection(db, 'doctor_profiles'))
+      withTimeout(getDocs(collection(db, 'directory_listings')), 15000),
+      withTimeout(getDocs(collection(db, 'clinics')), 15000),
+      withTimeout(getDocs(collection(db, 'doctor_profiles')), 15000)
     ])
     const profileDocs = profileSnap.docs.filter(d => d.data().is_public === true)
     const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs, profileDocs)
@@ -1270,6 +1282,9 @@ bot.catch(e => console.error('[CATCH]', e.message))
 // ═══════════════════════════════════════
 // START SERVER
 // ═══════════════════════════════════════
+console.log('🤖 Madar Bot starting...')
+
+const webhookPath = '/webhook'
 const PORT = process.env.PORT || 3000
 const BASE_URL = process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_PUBLIC_DOMAIN || process.env.APP_URL || process.env.WEBHOOK_URL || ''
 const app = express()
@@ -1278,24 +1293,22 @@ app.use(express.json())
 app.get('/', (_, res) => res.send('🤖 Madar Bot is running'))
 app.get('/health', (_, res) => res.json({ ok: true }))
 
-console.log('🤖 Madar Bot starting...')
-try {
-  setupFirebaseAuth().catch(e => console.error('⚠️ Firebase Auth setup failed:', e.message))
-
-  const webhookPath = '/webhook'
-  app.post(webhookPath, (req, res) => {
-    webhookCallback(bot, 'express')(req, res).catch(e => {
-      console.error('⚠️ Webhook error:', e.message)
-      if (!res.headersSent) res.status(500).send('OK')
-    })
+app.post(webhookPath, (req, res) => {
+  webhookCallback(bot, 'express')(req, res).catch(e => {
+    console.error('⚠️ Webhook error:', e.message)
+    if (!res.headersSent) res.status(500).send('OK')
   })
+})
 
-  app.listen(PORT, '0.0.0.0', () => console.log(`🌐 Server listening on port ${PORT}`))
-
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 Server listening on port ${PORT}`)
   if (BASE_URL) {
-    await bot.api.setWebhook(`${BASE_URL}${webhookPath}`)
-    console.log(`✅ Webhook set: ${BASE_URL}${webhookPath}`)
+    bot.api.setWebhook(`${BASE_URL}${webhookPath}`)
+      .then(() => console.log(`✅ Webhook set: ${BASE_URL}${webhookPath}`))
+      .catch(e => console.error('⚠️ Webhook set failed:', e.message))
   } else {
     console.log('No webhook URL — waiting for manual webhook or starting polling...')
   }
-} catch (e) { console.error('❌', e.message); process.exit(1) }
+})
+
+setupFirebaseAuth()
