@@ -147,7 +147,7 @@ function mainKb(role) {
 }
 
 async function uploadPhotoToImgbb(buf) {
-  const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
+  const imgbbKey = process.env.IMGBB_API_KEY || 'd59971458b9412d2647906a3b0d22753'
   const boundary = '----FormBoundary' + Date.now()
   const fileName = `photo_${Date.now()}.jpg`
   const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${fileName}"\r\nContent-Type: image/jpeg\r\n\r\n`)
