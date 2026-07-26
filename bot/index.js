@@ -253,7 +253,55 @@ bot.command('sync', async (ctx) => {
         fixed++
       }
     }
-    await ctx.reply(`✅ تمت المزامنة! تم تحديث ${fixed} من ${snap.docs.length} سجل`)
+
+    let migrated = 0
+    try {
+      const oldSnap = await getDocs(collection(db, 'directory_listings'))
+      const existingSnap = await getDocs(collection(db, 'doctor_profiles'))
+      const existingNames = new Set(existingSnap.docs.map(d => (d.data().doctor_name || '').toLowerCase().trim()))
+      for (const old of oldSnap.docs) {
+        const o = old.data()
+        const name = (o.doctor_name || '').toLowerCase().trim()
+        if (existingNames.has(name)) continue
+        const payload = {
+          clinicId: '',
+          doctor_name: o.doctor_name || '',
+          specialty: o.specialty || '',
+          facility_type: o.facility_type || 'doctor',
+          governorate: o.governorate || '',
+          area: o.area || '',
+          clinic_address: o.address || o.clinic_address || '',
+          phone1: o.phone || o.phone1 || '',
+          phone2: '',
+          whatsapp: o.whatsapp || '',
+          map_url: o.map_url || '',
+          doctor_bio: o.bio || o.doctor_bio || '',
+          photoUrl: o.photoUrl || '',
+          consultation_fee: o.consultation_fee || 0,
+          is_public: o.is_public !== false && o.enabled !== false,
+          is_directory_listing: true,
+          is_24h: o.is_24h || false,
+          weekly_schedule: o.weekly_schedule || buildWeeklySchedule([], '', ''),
+          verified: false,
+          is_top_rated: false,
+          rating_avg: o.rating_avg || 0,
+          rating_count: o.rating_count || 0,
+          view_count: o.view_count || 0,
+          created_at: o.created_at || o.createdAt || new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        if (o.facility_type === 'pharmacy') payload.is_pharmacy = true
+        if (o.facility_type === 'hospital') payload.is_hospital = true
+        if (o.facility_type === 'lab') payload.is_lab = true
+        if (o.facility_type === 'physio') payload.is_physio = true
+        const newRef = doc(collection(db, 'doctor_profiles'))
+        payload.clinicId = newRef.id
+        await setDoc(newRef, payload)
+        migrated++
+      }
+    } catch (e) { console.error('Migration error:', e.message) }
+
+    await ctx.reply(`✅ تمت المزامنة!\n\n🔧 تم تحديث: ${fixed} سجل\n📦 تم نقل من القديم: ${migrated} سجل\n📊 الإجمالي: ${snap.docs.length + migrated}`)
   } catch (e) { await ctx.reply(`❌ خطأ: ${e.message}`) }
 })
 
@@ -485,19 +533,18 @@ bot.callbackQuery('stats', async (ctx) => {
   if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
-    const [fc, cc, pc, dpSnap] = await Promise.all([
+    const [fc, cc, pc, dlSnap] = await Promise.all([
       getDocs(collection(db, 'bot_founders')),
       getDocs(collection(db, 'clinics')),
       getDocs(collection(db, 'patients')),
       getDocs(collection(db, 'doctor_profiles'))
     ])
     const active = cc.docs.filter(d => d.data().status === 'active').length
-    const dpCount = dpSnap.docs.filter(d => d.data().is_directory_listing === true).length
     await edit(ctx,
       `<b>📊 الإحصائيات</b>\n${DIV2}\n\n` +
       `👥 المؤسسسين: <b>${fc.size}</b>\n` +
       `🏥 العيادات: <b>${cc.size}</b> (${active} نشطة)\n` +
-      `🩺 الدليل: <b>${dpCount}</b>\n` +
+      `🩺 الدليل: <b>${dlSnap.size}</b>\n` +
       `🧑‍⚕️ المرضى: <b>${pc.size}</b>\n\n` +
       `${DIV}\n📅 ${new Date().toLocaleDateString('ar-EG')}`,
       { reply_markup: menuBtn() }
@@ -554,7 +601,7 @@ bot.callbackQuery('my:profile', async (ctx) => {
 
 // ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
-// DOCTOR PROFILES (دليل الأطباء) — doctor_profiles
+// DIRECTORY LISTINGS (الدليل) — doctor_profiles
 // ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
 
@@ -573,7 +620,7 @@ bot.callbackQuery('dp:list', async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const snap = await getDocs(collection(db, 'doctor_profiles'))
-    const docs = snap.docs.filter(d => d.data().is_directory_listing === true)
+    const docs = snap.docs
     const counts = { all: docs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
     docs.forEach(d => { const ft = d.data().facility_type || 'doctor'; counts[ft] = (counts[ft] || 0) + 1 })
     const kb = new InlineKeyboard()
@@ -628,7 +675,7 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
   try {
     const filter = ctx.match[1]
     const snap = await getDocs(collection(db, 'doctor_profiles'))
-    const docs = snap.docs.filter(d => d.data().is_directory_listing === true)
+    const docs = snap.docs
     const { text, kb } = buildCategoryList(docs, filter)
     await edit(ctx, text, { reply_markup: kb })
   } catch (e) { console.error('dp:cat:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
@@ -641,7 +688,7 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
     const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return ctx.reply('❌ غير موجود.')
     const p = snap.data()
-    const vis = p.is_public !== false ? '🟢 ظاهر' : '🔴 مخفي'
+    const vis = p.enabled !== false ? '🟢 ظاهر' : '🔴 مخفي'
     const ft = FACILITY_TYPES[p.facility_type] || '🩺'
     const h24 = p.is_24h ? '⏰ 24 ساعة' : '🕐 ساعات محددة'
     let scheduleText = ''
@@ -670,7 +717,7 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
       `📌 ${vis}`
     const kb = new InlineKeyboard()
       .text('✏️ تعديل', `dp:edit:${ctx.match[1]}`).row()
-      .text(p.is_public !== false ? '🔴 إخفاء' : '🟢 إظهار', `dp:tg:${ctx.match[1]}`).row()
+      .text(p.enabled !== false ? '🔴 إخفاء' : '🟢 إظهار', `dp:tg:${ctx.match[1]}`).row()
       .text(p.is_24h ? '🕐 تغيير لساعات' : '⏰ جعل 24 ساعة', `dp:set24:${ctx.match[1]}`).row()
       .text('📅 تعديل الجدول', `dp:setschedule:${ctx.match[1]}`).row()
       .text('🗑️ حذف', `dp:rm:${ctx.match[1]}`).row()
@@ -779,7 +826,7 @@ bot.callbackQuery(/^dp:tg:(.+)$/, async (ctx) => {
     if (!snap.exists()) return
     const cur = snap.data().is_public !== false
     await updateDoc(doc(db, 'doctor_profiles', ctx.match[1]), { is_public: !cur })
-    await edit(ctx, `✅ د. ${snap.data().doctor_name}: <b>${!cur ? '🟢 ظاهر' : '🔴 مخفي'}</b>`, {
+    await edit(ctx, `✅ ${snap.data().doctor_name}: <b>${!cur ? '🟢 ظاهر' : '🔴 مخفي'}</b>`, {
       reply_markup: new InlineKeyboard().text('◀️ رجوع', `dp:show:${ctx.match[1]}`)
     })
   } catch (e) { console.error(e.message) }
@@ -796,6 +843,8 @@ bot.callbackQuery(/^dp:set24:(.+)$/, async (ctx) => {
     const update = { is_24h: new24h }
     if (new24h) {
       update.weekly_schedule = buildWeeklySchedule(SCHEDULE_DAYS, '00:00', '23:59')
+    } else {
+      update.weekly_schedule = buildWeeklySchedule([], '', '')
     }
     await updateDoc(doc(db, 'doctor_profiles', ctx.match[1]), update)
     await edit(ctx, `✅ دوام 24 ساعة: <b>${new24h ? 'نعم ⏰' : 'لا 🕐'}</b>`, {
@@ -1151,7 +1200,6 @@ async function saveDoctorProfile(ctx, s) {
     if (d.facility_type === 'physio') payload.is_physio = true
 
     const newRef = doc(collection(db, 'doctor_profiles'))
-    payload.clinicId = newRef.id
     await setDoc(newRef, payload)
 
     clearS(ctx.chat.id)
@@ -1166,7 +1214,7 @@ async function saveDoctorProfile(ctx, s) {
       `🏛️ ${loc}\n` +
       `📱 ${d.phone1 || '-'}\n` +
       `⏰ ${sched}\n\n` +
-      `🔗 عرض في الدليل:\n<code>asaasedu.com/doctor/${newRef.id}</code>`,
+      `🔗 عرض في الدليل:\n<code>asaasedu.com/listing/${newRef.id}</code>`,
       { parse_mode: 'HTML', reply_markup: mainKb(store[ctx.chat.id]?.role || 'admin') }
     )
   } catch (e) {
