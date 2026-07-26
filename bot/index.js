@@ -312,7 +312,10 @@ async function saveListing(ctx, s, photoUrl) {
     await addDoc(collection(db, 'directory_listings'), {
       doctor_name: s.data.doctor_name, specialty: s.data.specialty,
       governorate: s.data.governorate, phone: s.data.phone, whatsapp: s.data.whatsapp,
-      address: s.data.address, photoUrl, area: '', doctor_bio: '',
+      address: s.data.address, photoUrl, area: s.data.area || '', doctor_bio: '',
+      facility_type: s.data.facility_type || 'doctor',
+      phone2: s.data.phone2 || '', website: s.data.website || '', map_url: s.data.map_url || '',
+      is_24h: s.data.is_24h || false,
       view_count: 0, rating_avg: 0, rating_count: 0,
       enabled: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
     })

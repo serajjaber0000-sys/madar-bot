@@ -203,7 +203,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
 import { doctorProfilesRepo, directoryListingsRepo } from '@/services/clinic'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { db } from '@/firebase/config'
@@ -269,7 +269,14 @@ const categoryList = computed(() => {
 })
 
 const specialties = computed(() => { const set = new Set(); categoryList.value.forEach(d => { if (d.specialty) set.add(d.specialty) }); return [...set].sort((a, b) => a.localeCompare(b, 'ar')) })
-const areas = computed(() => { const set = new Set(); categoryList.value.forEach(d => { if (d.area) set.add(d.area) }); return [...set].sort((a, b) => a.localeCompare(b, 'ar')) })
+const areas = computed(() => {
+  const set = new Set()
+  const base = selectedGovernorate.value
+    ? categoryList.value.filter(d => (d.governorate || '') === selectedGovernorate.value)
+    : categoryList.value
+  base.forEach(d => { if (d.area) set.add(d.area) })
+  return [...set].sort((a, b) => a.localeCompare(b, 'ar'))
+})
 const featuredDoctors = computed(() => categoryList.value.filter(d => d.rating_count > 0 && d.rating_avg > 0).sort((a, b) => (b.rating_avg || 0) - (a.rating_avg || 0) || (b.rating_count || 0) - (a.rating_count || 0)).slice(0, 12))
 const openNow24h = computed(() => {
   return allDoctors.value.filter(d => {
@@ -328,6 +335,9 @@ function isFavorite(id) { return favorites.value.includes(id) }
 function toggleFavorite(id) { const i = favorites.value.indexOf(id); if (i > -1) favorites.value.splice(i, 1); else favorites.value.push(id); localStorage.setItem('madar_favorites', JSON.stringify(favorites.value)) }
 function loadMore() { visibleCount.value += 20 }
 function resetAll() { selectedGovernorate.value = ''; specialty.value = ''; selectedArea.value = ''; searchQuery.value = ''; filterOpen.value = false }
+
+watch(selectedGovernorate, () => { if (selectedArea.value && !areas.value.includes(selectedArea.value)) selectedArea.value = '' })
+
 function openDoctor(doc) {
   if (doc.is_directory_listing) {
     window.location.href = '/listing/' + doc.id
