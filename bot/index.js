@@ -2,7 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy } from 'firebase/firestore'
+import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, increment } from 'firebase/firestore'
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth'
 
 const cfg = {
@@ -59,14 +59,16 @@ async function getRole(ctx) {
 
 function founderOrAdmin(ctx) { const r = store[ctx.chat.id]?.role; return r === 'admin' || r === 'founder' }
 
-const SPECS = ['طب عام', 'أسنان', 'باطنية', 'قلب', 'عظام', 'أطفال', 'جلدية', 'نساء وتوليد', 'عيون', 'أنف وأذن', 'مسالك بولية', 'عصبية', 'جراحة عامة', 'صيدلية', 'أخرى']
+const SPECS = ['طب عام', 'أسنان', 'باطنية', 'قلب', 'عظام', 'أطفال', 'جلدية', 'نساء وتوليد', 'عيون', 'أنف وأذن', 'مسالك بولية', 'عصبية', 'جراحة عامة', 'علاج طبيعي', 'أنسجة وعظم', 'أخرى']
 const GOVS = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'القادسية', 'بابل', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار', 'دهوك', 'السليمانية', 'ميسان', 'ذي قار', 'واسط', 'المثنى', 'حلبجة']
 const PLANS = { basic: 'الأساسية', premium: 'المتقدمة', enterprise: 'المؤسسات' }
+const FACILITY_TYPES = { doctor: '🩺 طبيب', pharmacy: '💊 صيدلية', hospital: '🏥 مستشفى', lab: '🔬 مختبر', physio: '🦴 علاج طبيعي' }
+const SCHEDULE_DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة']
 
 const AREAS = {
-  'بغداد': ['الكرخ', 'الرصافة', 'المنصور', 'الكاظمية', 'الأعظمية', 'الكرادة', 'الجادرية', 'زيونة', 'الحارثية', 'الكفاح', 'الجوسق', 'الأمين', 'الشالجية', 'الحبيبية', 'الدورة', 'الحويج', 'الحناوية', 'الشعب', 'البياع', 'الحرية', 'العبيدي', 'الزوية', 'العطيفي', 'الدهامشة', 'البو عيثة', 'الحرة', 'ال挀ارة'],
+  'بغداد': ['الكرخ', 'الرصافة', 'المنصور', 'الكاظمية', 'الأعظمية', 'الكرادة', 'الجادرية', 'زيونة', 'الحارثية', 'الكفاح', 'الجوسق', 'الأمين', 'الشالجية', 'الحبيبية', 'الدورة', 'الحويج', 'الحناوية', 'الشعب', 'البياع', 'الحرية', 'العبيدي', 'الزوية', 'العطيفي', 'الدهامشة', 'البو عيثة', 'الحرة'],
   'البصرة': ['الزبير', 'أبو الخصيب', 'الفاو', 'شط العرب', 'القرنة', 'العمارة', 'قلعة سكر', 'الرميلة', 'أبو فلوس', 'الشطرة', 'تراس', 'الهارثة', 'القرشية', 'بستان الرشيد'],
-  'نينوى': ['الموصل', 'تلكيف', 'سنجار', 'الحمدانية', 'عمادية', 'الشخانة', 'بلد', 'القیار'],
+  'نينوى': ['الموصل', 'تلكيف', 'سنجار', 'الحمدانية', 'عمادية', 'الشخانة', 'بلد', 'القيار'],
   'أربيل': ['أربيل', 'عنكاوا', 'شقلاوة', 'سوران', 'كويسنجق', 'الشيخان'],
   'النجف': ['النجف', 'الكوفة', 'المناذرة', 'الحيرة', 'العطار', 'الجباوي', 'المنصورية', 'الحبوبي'],
   'كربلاء': ['كربلاء', 'الهندية', 'عين التمر', 'عنه', 'الردي', 'المحور', 'الغزالية'],
@@ -94,12 +96,31 @@ function rndPass() {
   return Array.from({ length: 12 }, () => c[Math.floor(Math.random() * c.length)]).join('')
 }
 
+function buildWeeklySchedule(selectedDays, timeFrom, timeTo) {
+  return SCHEDULE_DAYS.map(name => ({
+    name,
+    enabled: selectedDays.includes(name),
+    from: selectedDays.includes(name) ? timeFrom : '',
+    to: selectedDays.includes(name) ? timeTo : ''
+  }))
+}
+
+function renderDaysKb(selectedDays) {
+  const kb = new InlineKeyboard()
+  for (let i = 0; i < SCHEDULE_DAYS.length; i++) {
+    const day = SCHEDULE_DAYS[i]
+    const checked = selectedDays.includes(day)
+    kb.text(`${checked ? '☑️' : '⬜'} ${day}`, `dpd:${i}`).row()
+  }
+  kb.text('✅ حفظ الأيام والوقت', 'dpd:save')
+  return kb
+}
+
 const DIV = '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈'
 const DIV2 = '════════════════'
 
 function menuBtn() { return new InlineKeyboard().text('🏠 القائمة الرئيسية', 'back') }
 
-// Fast edit helper — edits the message the user clicked on
 async function edit(ctx, text, options = {}) {
   try {
     await ctx.editMessageText(text, { parse_mode: 'HTML', ...options })
@@ -111,18 +132,37 @@ async function edit(ctx, text, options = {}) {
 function mainKb(role) {
   const kb = new InlineKeyboard()
   if (role === 'admin') {
-    kb.text('🏥 العيادات', 'c:list').text('📋 الدليل', 'dl:list').row()
+    kb.text('🏥 العيادات', 'c:list').text('🩺 الدليل', 'dp:list').row()
       .text('👥 المؤسسسين', 'f:list').text('➕ مؤسس', 'f:new').row()
       .text('📊 إحصائيات', 'stats').text('🔍 بحث', 'c:find')
   } else if (role === 'founder') {
     kb.text('🏥 عياداتي', 'my:list').text('➕ جديدة', 'c:new').row()
-      .text('📋 الدليل', 'dl:list').text('➕ طبيب', 'dl:new').row()
+      .text('🩺 الدليل', 'dp:list').text('➕ طبيب', 'dp:new').row()
       .text('📊 إحصائيات', 'stats').text('🔍 بحث', 'c:find').row()
       .text('👤 ملفي', 'my:profile')
   } else {
     kb.text('🏥 منصة مدار', 'my:clinic').text('📱 الموقع', 'open:web')
   }
   return kb
+}
+
+async function uploadPhotoToImgbb(buf) {
+  const b64 = buf.toString('base64')
+  const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'image=' + encodeURIComponent(b64)
+  })
+  const data = await res.json()
+  return data.success ? data.data.url : null
+}
+
+async function downloadTelegramPhoto(ctx, photo) {
+  const file = await ctx.api.getFile(photo.file_id)
+  const tgUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`
+  const imgRes = await fetch(tgUrl)
+  return Buffer.from(await imgRes.arrayBuffer())
 }
 
 // ═══════════════════════════════════════
@@ -268,62 +308,6 @@ bot.callbackQuery(/^c:rok:(.+)$/, async (ctx) => {
   } catch (e) { console.error('c:rok:', e.message) }
 })
 
-bot.callbackQuery('dl:skipphoto', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
-  const s = getS(ctx.chat.id)
-  if (s.step !== 'dl_photo') return
-  await saveListing(ctx, s, '')
-})
-
-bot.on('message:photo', async (ctx) => {
-  const s = getS(ctx.chat.id)
-  if (s.step !== 'dl_photo') return
-  await ctx.reply('⏳ جاري رفع الصورة...')
-  try {
-    const photo = ctx.message.photo[ctx.message.photo.length - 1]
-    const file = await ctx.api.getFile(photo.file_id)
-    const tgUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`
-    const imgRes = await fetch(tgUrl)
-    const buf = Buffer.from(await imgRes.arrayBuffer())
-    const b64 = buf.toString('base64')
-    const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
-    const formBody = 'image=' + encodeURIComponent(b64)
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formBody
-    })
-    const data = await res.json()
-    if (data.success) {
-      console.log('Photo uploaded:', data.data.url)
-      await saveListing(ctx, s, data.data.url)
-    } else {
-      console.error('imgbb error:', JSON.stringify(data))
-      await saveListing(ctx, s, '')
-    }
-  } catch (e) {
-    console.error('Photo upload error:', e.message, e.stack)
-    await saveListing(ctx, s, '')
-  }
-})
-
-async function saveListing(ctx, s, photoUrl) {
-  try {
-    await addDoc(collection(db, 'directory_listings'), {
-      doctor_name: s.data.doctor_name, specialty: s.data.specialty,
-      governorate: s.data.governorate, phone: s.data.phone, whatsapp: s.data.whatsapp,
-      address: s.data.address, photoUrl, area: s.data.area || '', doctor_bio: '',
-      facility_type: s.data.facility_type || 'doctor',
-      phone2: s.data.phone2 || '', website: s.data.website || '', map_url: s.data.map_url || '',
-      is_24h: s.data.is_24h || false,
-      view_count: 0, rating_avg: 0, rating_count: 0,
-      enabled: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-    })
-    clearS(ctx.chat.id)
-    await ctx.reply(`✅ <b>د. ${s.data.doctor_name}</b> تمت إضافته!${photoUrl ? ' 📸' : ''}`, { parse_mode: 'HTML', reply_markup: mainKb('admin') })
-  } catch (e) { console.error('saveListing:', e.message); await ctx.reply('❌ خطأ في الحفظ') }
-}
-
 // ═══════════════════════════════════════
 // CREATE CLINIC
 // ═══════════════════════════════════════
@@ -420,7 +404,7 @@ bot.callbackQuery('f:list', async (ctx) => {
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
     const snap = await getDocs(query(collection(db, 'bot_founders'), orderBy('created_at', 'desc')))
-    if (snap.empty) return edit(ctx, `👥 <b>المؤسسسين</b>\n${DIV}\n\n📭 لا يوجد مؤسسين`, { reply_markup: new InlineKeyboard().text('➕ إضافة', 'f:new').row().text('◀️', 'back') })
+    if (snap.empty) return edit(ctx, `👥 <b>المؤسسسين</b>\n${DIV}\n\n📭 لا يوجد مؤسسسين`, { reply_markup: new InlineKeyboard().text('➕ إضافة', 'f:new').row().text('◀️', 'back') })
     let msg = `<b>👥 المؤسسسين</b> — ${snap.size}\n${DIV}\n\n`
     const kb = new InlineKeyboard()
     snap.docs.forEach((d, i) => {
@@ -454,18 +438,18 @@ bot.callbackQuery('stats', async (ctx) => {
   if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
-    const [fc, cc, pc, dc] = await Promise.all([
+    const [fc, cc, pc, dpSnap] = await Promise.all([
       getDocs(collection(db, 'bot_founders')),
       getDocs(collection(db, 'clinics')),
       getDocs(collection(db, 'patients')),
-      getDocs(collection(db, 'directory_listings'))
+      getDocs(query(collection(db, 'doctor_profiles'), where('is_directory_listing', '==', true)))
     ])
     const active = cc.docs.filter(d => d.data().status === 'active').length
     await edit(ctx,
       `<b>📊 الإحصائيات</b>\n${DIV2}\n\n` +
       `👥 المؤسسسين: <b>${fc.size}</b>\n` +
       `🏥 العيادات: <b>${cc.size}</b> (${active} نشطة)\n` +
-      `🩺 الدليل: <b>${dc.size}</b>\n` +
+      `🩺 الدليل: <b>${dpSnap.size}</b>\n` +
       `🧑‍⚕️ المرضى: <b>${pc.size}</b>\n\n` +
       `${DIV}\n📅 ${new Date().toLocaleDateString('ar-EG')}`,
       { reply_markup: menuBtn() }
@@ -520,132 +504,303 @@ bot.callbackQuery('my:profile', async (ctx) => {
   } catch (e) { console.error(e.message) }
 })
 
-// ═══════════════════════════════════════
-// DIRECTORY LISTINGS
-// ═══════════════════════════════════════
-bot.callbackQuery('dl:list', async (ctx) => {
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// DOCTOR PROFILES (دليل الأطباء) — doctor_profiles
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+
+bot.callbackQuery('dp:skipphoto', async (ctx) => {
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dp_photo') return
+  s.data.photoUrl = ''
+  s.step = 'dp_name'
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  await edit(ctx, `✅ تم التخطي\n\n<b>2/13:</b> ✏️ اسم الطبيب أو المنشأة:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
+})
+
+bot.callbackQuery('dp:list', async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
-    const snap = await getDocs(query(collection(db, 'directory_listings'), orderBy('created_at', 'desc')))
-    if (snap.empty) return edit(ctx, `📋 <b>دليل الأطباء</b>\n${DIV}\n\n📭 لا يوجد أطباء بعد`, { reply_markup: new InlineKeyboard().text('➕ إضافة', 'dl:new').row().text('◀️', 'back') })
-    let msg = `<b>📋 الدليل</b> — ${snap.size}\n${DIV}\n\n`
+    const snap = await getDocs(query(collection(db, 'doctor_profiles'), where('is_directory_listing', '==', true), orderBy('created_at', 'desc')))
+    if (snap.empty) return edit(ctx, `🩺 <b>دليل الأطباء</b>\n${DIV}\n\n📭 لا يوجد أطباء بعد`, { reply_markup: new InlineKeyboard().text('➕ إضافة طبيب', 'dp:new').row().text('◀️', 'back') })
+    let msg = `<b>🩺 الدليل</b> — ${snap.size}\n${DIV}\n\n`
     const kb = new InlineKeyboard()
     snap.docs.forEach((d, i) => {
-      const l = d.data()
-      const s = l.enabled !== false ? '🟢' : '🔴'
-      msg += `${s} <b>${i + 1}.</b> د. ${l.doctor_name} — ${l.specialty || '-'}\n`
-      kb.text(`${s} ${l.doctor_name}`, `dl:show:${d.id}`).row()
+      const p = d.data()
+      const vis = p.is_public !== false ? '🟢' : '🔴'
+      const ft = FACILITY_TYPES[p.facility_type] || '🩺'
+      msg += `${vis} <b>${i + 1}.</b> ${ft} ${p.doctor_name || '-'} — ${p.specialty || '-'}\n`
+      kb.text(`${vis} ${p.doctor_name || 'طبيب'}`, `dp:show:${d.id}`).row()
     })
-    kb.text('➕ إضافة', 'dl:new').row().text('◀️ رجوع', 'back')
+    kb.text('➕ إضافة طبيب', 'dp:new').row().text('◀️ رجوع', 'back')
     await edit(ctx, msg, { reply_markup: kb })
-  } catch (e) { console.error(e.message) }
+  } catch (e) { console.error('dp:list:', e.message) }
 })
 
-bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
-    const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
+    const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return ctx.reply('❌ غير موجود.')
-    const l = snap.data()
-    const st = l.enabled !== false ? '🟢 ظاهر' : '🔴 مخفي'
-    const fee = l.consultation_fee ? Number(l.consultation_fee).toLocaleString('ar-EG') + ' د.ع' : '-'
-    await edit(ctx,
-      `<b>🩺 د. ${l.doctor_name}</b>\n${DIV2}\n` +
-      `🩺 ${l.specialty || '-'}  •  📍 ${l.governorate || '-'}${l.area ? ' - ' + l.area : ''}\n` +
-      `🏠 ${l.address || '-'}\n\n` +
-      `📱 ${l.phone || '-'}  •  💬 ${l.whatsapp || '-'}\n` +
-      `💰 ${fee}  •  👁 ${l.view_count || 0}\n` +
-      `📌 ${st}`,
-      { reply_markup: new InlineKeyboard()
-        .text('✏️ تعديل', `dl:edit:${ctx.match[1]}`).row()
-        .text(l.enabled !== false ? '🔴 إخفاء' : '🟢 إظهار', `dl:tg:${ctx.match[1]}`).row()
-        .text('🗑️ حذف', `dl:rm:${ctx.match[1]}`).row()
-        .text('◀️ الدليل', 'dl:list').text('🏠', 'back')
+    const p = snap.data()
+    const vis = p.is_public !== false ? '🟢 ظاهر' : '🔴 مخفي'
+    const ft = FACILITY_TYPES[p.facility_type] || 'طبيب'
+    const h24 = p.is_24h ? '⏰ 24 ساعة' : '🕐 ساعات محددة'
+    let scheduleText = ''
+    if (p.is_24h) {
+      scheduleText = 'يعمل 24/7'
+    } else if (p.weekly_schedule && p.weekly_schedule.length) {
+      const enabled = p.weekly_schedule.filter(d => d.enabled)
+      if (enabled.length) {
+        scheduleText = enabled.map(d => `${d.name} ${d.from || ''}-${d.to || ''}`).join('\n')
+      } else {
+        scheduleText = 'لا يوجد جدول'
       }
-    )
-  } catch (e) { console.error(e.message) }
+    }
+    const msg =
+      `<b>${FACILITY_TYPES[p.facility_type]?.replace(/[^\w\u0600-\u06FF]/g, '') || '🩺'} د. ${p.doctor_name || '-'}</b>\n${DIV2}\n\n` +
+      `🩺 <b>التخصص:</b> ${p.specialty || '-'}\n` +
+      `🏛️ <b>المحافظة:</b> ${p.governorate || '-'} — ${p.area || '-'}\n` +
+      `📍 <b>العنوان:</b> ${p.clinic_address || '-'}\n\n` +
+      `📱 <b>الهاتف:</b> ${p.phone1 || '-'}\n` +
+      `💬 <b>واتساب:</b> ${p.whatsapp || '-'}\n` +
+      `🔗 <b>الخريطة:</b> ${p.map_url || '-'}\n\n` +
+      `📝 <b>النبذة:</b> ${(p.doctor_bio || '-').substring(0, 120)}${(p.doctor_bio || '').length > 120 ? '...' : ''}\n\n` +
+      `${h24}\n📅 <b>الدوام:</b>\n${scheduleText}\n\n` +
+      `👁 ${p.view_count || 0} مشاهدة  •  ⭐ ${p.rating_avg || 0} (${p.rating_count || 0})\n` +
+      `📌 ${vis}`
+    const kb = new InlineKeyboard()
+      .text('✏️ تعديل', `dp:edit:${ctx.match[1]}`).row()
+      .text(p.is_public !== false ? '🔴 إخفاء' : '🟢 إظهار', `dp:tg:${ctx.match[1]}`).row()
+      .text(p.is_24h ? '🕐 تغيير لساعات' : '⏰ جعل 24 ساعة', `dp:set24:${ctx.match[1]}`).row()
+      .text('📅 تعديل الجدول', `dp:setschedule:${ctx.match[1]}`).row()
+      .text('🗑️ حذف', `dp:rm:${ctx.match[1]}`).row()
+      .text('◀️ الدليل', 'dp:list').text('🏠', 'back')
+    await edit(ctx, msg, { reply_markup: kb })
+  } catch (e) { console.error('dp:show:', e.message) }
 })
 
-// ═══════════════════════════════════════
-// EDIT DIRECTORY LISTING
-// ═══════════════════════════════════════
-bot.callbackQuery(/^dl:edit:(.+)$/, async (ctx) => {
+bot.callbackQuery('dp:new', async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const s = getS(ctx.chat.id); s.step = 'dp_photo'; s.data = {}
+  await edit(ctx, `🩺 <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/13:</b> 📸 صورة الطبيب أو المنشأة\n\nارسل صورة أو اضغط التخطي:`, {
+    reply_markup: new InlineKeyboard().text('⏭️ تخطي', 'dp:skipphoto').row().text('❌ إلغاء', 'back')
+  })
+})
+
+bot.callbackQuery(/^dp:edit:(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const id = ctx.match[1]
-  try {
-    const snap = await getDoc(doc(db, 'directory_listings', id))
-    if (!snap.exists()) return ctx.reply('❌ غير موجود.')
-    const l = snap.data()
-    const kb = new InlineKeyboard()
-      .text('✏️ الاسم', `dl:set:doctor_name:${id}`).text('🩺 التخصص', `dl:set:specialty:${id}`).row()
-      .text('🏛️ المحافظة', `dl:set:governorate:${id}`).text('📍 المنطقة', `dl:set:area:${id}`).row()
-      .text('📱 الهاتف', `dl:set:phone:${id}`).text('💬 واتساب', `dl:set:whatsapp:${id}`).row()
-      .text('🏠 العنوان', `dl:set:address:${id}`).text('💰 الكشفية', `dl:set:consultation_fee:${id}`).row()
-      .text('⏰ دوام 24 ساعة', `dl:set:is_24h:${id}`).row()
-      .text('◀️ الرجوع', `dl:show:${id}`)
-    await edit(ctx, `<b>✏️ تعديل: د. ${l.doctor_name}</b>\n${DIV}\n\nاختر ما تريد تعديله 👇`, { reply_markup: kb })
-  } catch (e) { console.error(e.message) }
+  const kb = new InlineKeyboard()
+    .text('📸 الصورة', `dp:set:photo:${id}`).text('✏️ الاسم', `dp:set:doctor_name:${id}`).row()
+    .text('🩺 التخصص', `dp:set:specialty:${id}`).text('🏢 النوع', `dp:set:facility_type:${id}`).row()
+    .text('🏛️ المحافظة', `dp:set:governorate:${id}`).text('📍 المنطقة', `dp:set:area:${id}`).row()
+    .text('🏠 العنوان', `dp:set:clinic_address:${id}`).text('📱 الهاتف', `dp:set:phone1:${id}`).row()
+    .text('💬 واتساب', `dp:set:whatsapp:${id}`).text('🔗 الخريطة', `dp:set:map_url:${id}`).row()
+    .text('📝 النبذة', `dp:set:doctor_bio:${id}`).text('💰 الكشفية', `dp:set:consultation_fee:${id}`).row()
+    .text('⏰ دوام 24 ساعة', `dp:set24:${id}`).text('📅 الجدول', `dp:setschedule:${id}`).row()
+    .text('◀️ الرجوع', `dp:show:${id}`)
+  await edit(ctx, `<b>✏️ تعديل الطبيب</b>\n${DIV}\n\nاختر ما تريد تعديله 👇`, { reply_markup: kb })
 })
 
-const EDITABLE_FIELDS = { doctor_name: '✏️ الاسم الجديد', specialty: '🩺 التخصص الجديد', governorate: '🏛️ المحافظة الجديدة', area: '📍 المنطقة الجديدة', phone: '📱 رقم الهاتف الجديد', whatsapp: '💬 رقم الواتساب الجديد', address: '🏠 العنوان الجديد', consultation_fee: '💰 الكشفية الجديدة (رقم فقط)' }
+const DP_TEXT_FIELDS = { doctor_name: '✏️ الاسم الجديد', specialty: '🩺 التخصص الجديد', governorate: '🏛️ المحافظة الجديدة', area: '📍 المنطقة الجديدة', phone1: '📱 رقم الهاتف الجديد', whatsapp: '💬 رقم الواتساب الجديد', clinic_address: '🏠 العنوان الجديد', map_url: '🔗 رابط الخريطة الجديد', doctor_bio: '📝 النبذة الجديدة', consultation_fee: '💰 الكشفية الجديدة (رقم فقط)' }
 
-bot.callbackQuery(/^dl:set:([^:]+):(.+)$/, async (ctx) => {
+bot.callbackQuery(/^dp:set:([^:]+):(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const field = ctx.match[1], id = ctx.match[2]
-  const s = getS(ctx.chat.id)
-  if (field === 'is_24h') {
-    try {
-      const snap = await getDoc(doc(db, 'directory_listings', id))
-      const cur = snap.data()?.is_24h || false
-      await updateDoc(doc(db, 'directory_listings', id), { is_24h: !cur })
-      await edit(ctx, `✅ تم تغيير دوام 24 ساعة إلى: <b>${!cur ? 'نعم ✅' : 'لا ❌'}</b>`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dl:show:${id}`) })
-    } catch (e) { console.error(e.message) }
-    return
+
+  if (field === 'photo') {
+    const s = getS(ctx.chat.id)
+    s.step = 'dp_setphoto'; s.data = { editId: id }
+    return edit(ctx, `📸 <b>ارسل الصورة الجديدة:</b>\n${DIV}\n\nارسل صورة أو اكتب - لإلغاء:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dp:edit:${id}`) })
   }
-  if (!EDITABLE_FIELDS[field]) return
-  s.step = 'dl_edit_field'; s.data = { field, editId: id }
-  await edit(ctx, `📝 <b>${EDITABLE_FIELDS[field]}</b>\n${DIV}\n\nاكتب القيمة الجديدة أو اكتب - لإلغاء:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dl:edit:${id}`) })
+
+  if (field === 'facility_type') {
+    const kb = new InlineKeyboard()
+    for (const [key, label] of Object.entries(FACILITY_TYPES)) {
+      kb.text(label, `dp:ft:${key}:${id}`).row()
+    }
+    kb.text('◀️ رجوع', `dp:edit:${id}`)
+    return edit(ctx, `🏢 <b>اختر النوع:</b>`, { reply_markup: kb })
+  }
+
+  if (field === 'specialty') {
+    const s = getS(ctx.chat.id)
+    s.step = 'dp_set_field'; s.data = { field, editId: id }
+    const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
+    return ctx.reply('🩺 اختر التخصص:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+  }
+
+  if (field === 'governorate') {
+    const s = getS(ctx.chat.id)
+    s.step = 'dp_set_field'; s.data = { field, editId: id }
+    const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+    return ctx.reply('🏛️ اختر المحافظة:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+  }
+
+  if (field === 'area') {
+    const s = getS(ctx.chat.id)
+    const docSnap = await getDoc(doc(db, 'doctor_profiles', id))
+    const gov = docSnap.exists() ? docSnap.data().governorate : ''
+    s.step = 'dp_set_field'; s.data = { field, editId: id }
+    if (gov && AREAS[gov]) {
+      const areas = [...AREAS[gov], 'أخرى']
+      const rows = []; for (let i = 0; i < areas.length; i += 3) rows.push(areas.slice(i, i + 3))
+      return ctx.reply('📍 اختر المنطقة:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    }
+    return edit(ctx, `📝 <b>اكتب المنطقة الجديدة:</b>`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dp:edit:${id}`) })
+  }
+
+  if (!DP_TEXT_FIELDS[field]) return
+  const s = getS(ctx.chat.id)
+  s.step = 'dp_set_field'; s.data = { field, editId: id }
+  await edit(ctx, `📝 <b>${DP_TEXT_FIELDS[field]}</b>\n${DIV}\n\nاكتب القيمة الجديدة أو اكتب - لإلغاء:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dp:edit:${id}`) })
 })
 
-bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^dp:ft:([^:]+):(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const type = ctx.match[1], id = ctx.match[2]
+  const flags = { doctor: {}, pharmacy: { is_pharmacy: true }, hospital: { is_hospital: true }, lab: { is_lab: true }, physio: { is_physio: true } }
+  const update = { facility_type: type, ...flags[type] || {} }
+  try {
+    await updateDoc(doc(db, 'doctor_profiles', id), update)
+    await edit(ctx, `✅ النوع: <b>${FACILITY_TYPES[type]}</b>`, { reply_markup: new InlineKeyboard().text('◀️ رجوع', `dp:edit:${id}`) })
+  } catch (e) { console.error(e.message) }
+})
+
+bot.callbackQuery(/^dp:tg:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   try {
-    const snap = await getDoc(doc(db, 'directory_listings', ctx.match[1]))
+    const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return
-    const ne = snap.data().enabled === false ? true : false
-    await updateDoc(doc(db, 'directory_listings', ctx.match[1]), { enabled: ne })
-    await edit(ctx, `✅ د. ${snap.data().doctor_name}: <b>${ne ? '🟢 ظاهر' : '🔴 مخفي'}</b>`, {
-      reply_markup: new InlineKeyboard().text('◀️ رجوع', `dl:show:${ctx.match[1]}`)
+    const cur = snap.data().is_public !== false
+    await updateDoc(doc(db, 'doctor_profiles', ctx.match[1]), { is_public: !cur })
+    await edit(ctx, `✅ د. ${snap.data().doctor_name}: <b>${!cur ? '🟢 ظاهر' : '🔴 مخفي'}</b>`, {
+      reply_markup: new InlineKeyboard().text('◀️ رجوع', `dp:show:${ctx.match[1]}`)
     })
   } catch (e) { console.error(e.message) }
 })
 
-bot.callbackQuery(/^dl:rm:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^dp:set24:(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  try {
+    const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
+    if (!snap.exists()) return
+    const cur = snap.data().is_24h || false
+    const new24h = !cur
+    const update = { is_24h: new24h }
+    if (new24h) {
+      update.weekly_schedule = buildWeeklySchedule(SCHEDULE_DAYS, '00:00', '23:59')
+    }
+    await updateDoc(doc(db, 'doctor_profiles', ctx.match[1]), update)
+    await edit(ctx, `✅ دوام 24 ساعة: <b>${new24h ? 'نعم ⏰' : 'لا 🕐'}</b>`, {
+      reply_markup: new InlineKeyboard().text('◀️ رجوع', `dp:show:${ctx.match[1]}`)
+    })
+  } catch (e) { console.error(e.message) }
+})
+
+bot.callbackQuery(/^dp:setschedule:(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const id = ctx.match[1]
+  const s = getS(ctx.chat.id)
+  s.step = 'dp_edit_schedule'; s.data = { editId: id, selectedDays: [] }
+  try {
+    const snap = await getDoc(doc(db, 'doctor_profiles', id))
+    if (snap.exists() && snap.data().weekly_schedule) {
+      snap.data().weekly_schedule.forEach(d => { if (d.enabled && d.from) s.data.selectedDays.push(d.name) })
+    }
+  } catch {}
+  await edit(ctx, `📅 <b>اختر ايام الدوام:</b>\n${DIV}\n\nاضغط على كل يوم لتفعيله أو تعطيله:`, { reply_markup: renderDaysKb(s.data.selectedDays) })
+})
+
+bot.callbackQuery(/^dpd:(\d+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const idx = Number(ctx.match[1])
+  const s = getS(ctx.chat.id)
+  if (!s.data.selectedDays) s.data.selectedDays = []
+  const day = SCHEDULE_DAYS[idx]
+  const i = s.data.selectedDays.indexOf(day)
+  if (i > -1) s.data.selectedDays.splice(i, 1)
+  else s.data.selectedDays.push(day)
+  try {
+    await ctx.editMessageReplyMarkup({ reply_markup: renderDaysKb(s.data.selectedDays) })
+  } catch {}
+})
+
+bot.callbackQuery('dpd:save', async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const s = getS(ctx.chat.id)
+  if (!s.data.selectedDays || !s.data.selectedDays.length) {
+    return edit(ctx, `⚠️ اختر يوماً واحداً على الأقل!`, { reply_markup: renderDaysKb(s.data.selectedDays || []) })
+  }
+  if (s.step === 'dp_edit_schedule') {
+    s.step = 'dp_edit_hours'
+    return edit(ctx, `⏰ <b>اكتب وقت الدوام:</b>\n${DIV}\n\nمثال: <code>8:00 - 14:00</code>\n\nاكتب من - الى:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dp:edit:${s.data.editId}`) })
+  }
+  if (s.step === 'dp_days') {
+    s.step = 'dp_hours'
+    return edit(ctx, `⏰ <b>اكتب وقت الدوام:</b>\n${DIV}\n\nمثال: <code>8:00 - 14:00</code>\n\nاكتب من - الى:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
+  }
+})
+
+bot.callbackQuery(/^dp:rm:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
-  await edit(ctx, `⚠️ <b>حذف الطبيب؟</b>`, {
-    reply_markup: new InlineKeyboard().text('✅ نعم', `dl:rok:${ctx.match[1]}`).text('❌ لا', 'dl:list')
+  await edit(ctx, `⚠️ <b>حذف الطبيب من الدليل؟</b>`, {
+    reply_markup: new InlineKeyboard().text('✅ نعم، حذف', `dp:rok:${ctx.match[1]}`).text('❌ لا', 'dp:list')
   })
 })
 
-bot.callbackQuery(/^dl:rok:(.+)$/, async (ctx) => {
+bot.callbackQuery(/^dp:rok:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
-  try { await deleteDoc(doc(db, 'directory_listings', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
+  try { await deleteDoc(doc(db, 'doctor_profiles', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
 })
 
-bot.callbackQuery('dl:new', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
-  await ctx.answerCallbackQuery({ cacheTime: 0 })
-  const s = getS(ctx.chat.id); s.step = 'dl_name'; s.data = {}
-  await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/8:</b> اسم الطبيب`, {
-    reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back')
-  })
+// ═══════════════════════════════════════
+// PHOTO HANDLER
+// ═══════════════════════════════════════
+bot.on('message:photo', async (ctx) => {
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dp_photo' && s.step !== 'dp_setphoto') return
+  await ctx.reply('⏳ جاري رفع الصورة...')
+  try {
+    const photo = ctx.message.photo[ctx.message.photo.length - 1]
+    const buf = await downloadTelegramPhoto(ctx, photo)
+    const url = await uploadPhotoToImgbb(buf)
+    if (s.step === 'dp_photo') {
+      s.data.photoUrl = url || ''
+      s.step = 'dp_name'
+      await ctx.reply(`✅ تم رفع الصورة${url ? ' 📸' : ' (فشل الرفع)'}\n\n<b>2/13:</b> ✏️ اسم الطبيب أو المنشأة:`, { parse_mode: 'HTML', reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
+    } else if (s.step === 'dp_setphoto') {
+      const id = s.data.editId
+      try {
+        await updateDoc(doc(db, 'doctor_profiles', id), { photoUrl: url || '' })
+        await ctx.reply(`✅ تم تحديث الصورة 📸`, { parse_mode: 'HTML', reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dp:edit:${id}`) })
+      } catch (e) { await ctx.reply('❌ خطأ في الحفظ') }
+      clearS(ctx.chat.id)
+    }
+  } catch (e) {
+    console.error('Photo upload error:', e.message)
+    if (s.step === 'dp_photo') {
+      s.data.photoUrl = ''
+      s.step = 'dp_name'
+      await ctx.reply(`⚠️ فشل رفع الصورة\n\n<b>2/13:</b> ✏️ اسم الطبيب أو المنشأة:`, { parse_mode: 'HTML', reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
+    }
+  }
 })
 
 // ═══════════════════════════════════════
@@ -663,51 +818,90 @@ bot.on('message:text', async (ctx) => {
   }
 
   try {
-    // ── DIRECTORY LISTING ──
-    if (s.step === 'dl_name') { s.data.doctor_name = text; s.step = 'dl_spec'
+    // ── DOCTOR PROFILE WIZARD ──
+
+    if (s.step === 'dp_name') { s.data.doctor_name = text; s.step = 'dp_spec'
       const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
-      return ctx.reply('🩺 <b>2/8</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🩺 <b>3/13</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
-    if (s.step === 'dl_spec') {
-      if (text === 'أخرى') { s.step = 'dl_spec_custom'; return ctx.reply('✏️ اكتب التخصص يدوياً:', { reply_markup: { remove_keyboard: true } }) }
+    if (s.step === 'dp_spec') {
+      if (text === 'أخرى') { s.step = 'dp_spec_custom'; return ctx.reply('✏️ اكتب التخصص يدوياً:', { reply_markup: { remove_keyboard: true } }) }
       if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
-      s.data.specialty = text; s.step = 'dl_gov'
-      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-      return ctx.reply('🏛️ <b>3/8</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      s.data.specialty = text; s.step = 'dp_type'
+      const kb = new InlineKeyboard()
+      for (const [key, label] of Object.entries(FACILITY_TYPES)) { kb.text(label, `dpt:${key}`).row() }
+      kb.text('❌ إلغاء', 'back')
+      return ctx.reply('🏢 <b>4/13</b> نوع المنشأة:', { parse_mode: 'HTML', reply_markup: kb })
     }
-    if (s.step === 'dl_spec_custom') { s.data.specialty = text; s.step = 'dl_gov'
-      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-      return ctx.reply('🏛️ <b>3/8</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    if (s.step === 'dp_spec_custom') { s.data.specialty = text; s.step = 'dp_type'
+      const kb = new InlineKeyboard()
+      for (const [key, label] of Object.entries(FACILITY_TYPES)) { kb.text(label, `dpt:${key}`).row() }
+      kb.text('❌ إلغاء', 'back')
+      return ctx.reply('🏢 <b>4/13</b> نوع المنشأة:', { parse_mode: 'HTML', reply_markup: kb })
     }
-    if (s.step === 'dl_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
-      s.data.governorate = text; s.step = 'dl_area'
+
+    if (s.step === 'dp_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
+      s.data.governorate = text; s.step = 'dp_area'
       const areas = AREAS[text] || ['أخرى']
       const kb = [...areas, 'أخرى']
       const rows = []; for (let i = 0; i < kb.length; i += 3) rows.push(kb.slice(i, i + 3))
-      return ctx.reply('📍 <b>4/8</b> اختر المنطقة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('📍 <b>6/13</b> اختر المنطقة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
-    if (s.step === 'dl_area') {
-      if (text === 'أخرى') { s.step = 'dl_area_custom'; return ctx.reply('✏️ اكتب المنطقة يدوياً:', { reply_markup: { remove_keyboard: true } }) }
+    if (s.step === 'dp_area') {
+      if (text === 'أخرى') { s.step = 'dp_area_custom'; return ctx.reply('✏️ اكتب المنطقة يدوياً:', { reply_markup: { remove_keyboard: true } }) }
       const areas = AREAS[s.data.governorate] || []
       if (!areas.includes(text)) return ctx.reply('❌ اختر من القائمة')
-      s.data.area = text; s.step = 'dl_phone'
-      return ctx.reply('📱 <b>5/8</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
+      s.data.area = text; s.step = 'dp_addr'
+      return ctx.reply('🏠 <b>7/13</b> العنوان بالضبط (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
     }
-    if (s.step === 'dl_area_custom') { s.data.area = text; s.step = 'dl_phone'
-      return ctx.reply('📱 <b>5/8</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
-    }
-    if (s.step === 'dl_phone') { s.data.phone = text === '-' ? '' : text; s.step = 'dl_wa'
-      return ctx.reply('💬 <b>6/8</b> الواتساب (- للتخطي):', { parse_mode: 'HTML' })
-    }
-    if (s.step === 'dl_wa') { s.data.whatsapp = text === '-' ? '' : text; s.step = 'dl_addr'
-      return ctx.reply('📍 <b>7/8</b> العنوان (- للتخطي):', { parse_mode: 'HTML' })
-    }
-    if (s.step === 'dl_addr') { s.data.address = text === '-' ? '' : text; s.step = 'dl_photo'
-      return ctx.reply('📸 صورة الطبيب (ارسل صورة أو اكتب - للتخطي):', { reply_markup: new InlineKeyboard().text('⏭️تخطي', 'dl:skipphoto') })
+    if (s.step === 'dp_area_custom') { s.data.area = text; s.step = 'dp_addr'
+      return ctx.reply('🏠 <b>7/13</b> العنوان بالضبط (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
     }
 
-    // ── EDIT DIRECTORY LISTING ──
-    if (s.step === 'dl_edit_field') {
+    if (s.step === 'dp_addr') { s.data.clinic_address = text === '-' ? '' : text; s.step = 'dp_phone'
+      return ctx.reply('📱 <b>8/13</b> رقم الهاتف (- للتخطي):', { parse_mode: 'HTML' })
+    }
+    if (s.step === 'dp_phone') { s.data.phone1 = text === '-' ? '' : text; s.step = 'dp_wa'
+      return ctx.reply('💬 <b>9/13</b> رقم الواتساب (- للتخطي):', { parse_mode: 'HTML' })
+    }
+    if (s.step === 'dp_wa') { s.data.whatsapp = text === '-' ? '' : text; s.step = 'dp_map'
+      return ctx.reply('🗺️ <b>10/13</b> رابط الموقع على الخريطة (- للتخطي):\n\nمثال: https://goo.gl/maps/xxx', { parse_mode: 'HTML' })
+    }
+    if (s.step === 'dp_map') { s.data.map_url = text === '-' ? '' : text; s.step = 'dp_bio'
+      return ctx.reply('📝 <b>11/13</b> النبذة التعريفية (- للتخطي):\n\nاكتب نبذة مختصرة عن الطبيب أو المنشأة:', { parse_mode: 'HTML' })
+    }
+    if (s.step === 'dp_bio') {
+      s.data.doctor_bio = text === '-' ? '' : text; s.step = 'dp_24h'
+      const kb = new InlineKeyboard()
+        .text('نعم ⏰ يعمل 24 ساعة', 'dp24h:yes').row()
+        .text('لا 🕐 ساعات محددة', 'dp24h:no').row()
+        .text('❌ إلغاء', 'back')
+      return edit(ctx, `⏰ <b>12/13</b> هل المنشأة تعمل 24 ساعة؟`, { reply_markup: kb })
+    }
+
+    if (s.step === 'dp_hours') {
+      const m = text.match(/(\d{1,2}:\d{2})\s*[-–to]+\s*(\d{1,2}:\d{2})/i)
+      if (!m) return ctx.reply('❌ الصيغة: <code>8:00 - 14:00</code>\n\nاكتب الوقت صحيحاً:', { parse_mode: 'HTML' })
+      s.data.timeFrom = m[1]; s.data.timeTo = m[2]
+      await saveDoctorProfile(ctx, s)
+      return
+    }
+
+    // ── EDIT SCHEDULE HOURS ──
+    if (s.step === 'dp_edit_hours') {
+      const m = text.match(/(\d{1,2}:\d{2})\s*[-–to]+\s*(\d{1,2}:\d{2})/i)
+      if (!m) return ctx.reply('❌ الصيغة: <code>8:00 - 14:00</code>\n\nاكتب الوقت صحيحاً:', { parse_mode: 'HTML' })
+      const schedule = buildWeeklySchedule(s.data.selectedDays, m[1], m[2])
+      try {
+        await updateDoc(doc(db, 'doctor_profiles', s.data.editId), { weekly_schedule: schedule, is_24h: false, updated_at: new Date().toISOString() })
+        clearS(ctx.chat.id)
+        await ctx.reply(`✅ تم تحديث جدول الدوام`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dp:show:${s.data.editId}`) })
+      } catch (e) { console.error(e.message); await ctx.reply('❌ خطأ في الحفظ') }
+      return
+    }
+
+    // ── EDIT FIELD ──
+    if (s.step === 'dp_set_field') {
       const { field, editId } = s.data
       if (text === '-') { clearS(ctx.chat.id); return ctx.reply('❌ تم الإلغاء') }
       const update = {}
@@ -717,9 +911,10 @@ bot.on('message:text', async (ctx) => {
       } else {
         update[field] = text
       }
-      try { await updateDoc(doc(db, 'directory_listings', editId), update) } catch (e) { console.error(e.message) }
+      update.updated_at = new Date().toISOString()
+      try { await updateDoc(doc(db, 'doctor_profiles', editId), update) } catch (e) { console.error(e.message) }
       clearS(ctx.chat.id)
-      return edit(ctx, `✅ تم التحديث <b>${field}</b> ← <b>${text}</b>`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dl:show:${editId}`) })
+      return edit(ctx, `✅ تم تحديث <b>${DP_TEXT_FIELDS[field] || field}</b>`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dp:edit:${editId}`) })
     }
 
     // ── CREATE CLINIC ──
@@ -745,7 +940,7 @@ bot.on('message:text', async (ctx) => {
       return ctx.reply('📊 الباقة:', { reply_markup: { inline_keyboard: [[{ text: '🟢 أساسية', callback_data: 'bp:basic' }], [{ text: '🔵 متقدمة', callback_data: 'bp:premium' }], [{ text: '🟣 مؤسسات', callback_data: 'bp:enterprise' }]] } })
     }
 
-    // ── EDIT ──
+    // ── EDIT CLINIC ──
     if (s.step === 'edit_val') {
       const { cid, field } = s.data
       const update = {}; update[field] = field === 'consultation_fee' ? Number(text) || 0 : text
@@ -787,6 +982,105 @@ bot.on('message:text', async (ctx) => {
 })
 
 // ═══════════════════════════════════════
+// FACILITY TYPE SELECTION (Wizard)
+// ═══════════════════════════════════════
+bot.callbackQuery(/^dpt:([^:]+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const type = ctx.match[1]
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dp_type') return
+  s.data.facility_type = type
+  s.step = 'dp_gov'
+  const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+  await edit(ctx, `✅ النوع: ${FACILITY_TYPES[type]}\n\n<b>5/13</b> 🏛️ المحافظة:`, { parse_mode: 'HTML' })
+  await ctx.reply('🏛️ اختر المحافظة:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+})
+
+// ═══════════════════════════════════════
+// 24H SELECTION (Wizard)
+// ═══════════════════════════════════════
+bot.callbackQuery(/^dp24h:(yes|no)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dp_24h') return
+  const is24h = ctx.match[1] === 'yes'
+  s.data.is_24h = is24h
+
+  if (is24h) {
+    s.data.weekly_schedule = buildWeeklySchedule(SCHEDULE_DAYS, '00:00', '23:59')
+    await saveDoctorProfile(ctx, s)
+  } else {
+    s.step = 'dp_days'; s.data.selectedDays = []
+    await edit(ctx, `📅 <b>13/13</b> اختر ايام الدوام:\n${DIV}\n\nاضغط على كل يوم لتفعيله أو تعطيله:`, { reply_markup: renderDaysKb([]) })
+  }
+})
+
+// ═══════════════════════════════════════
+// SAVE DOCTOR PROFILE
+// ═══════════════════════════════════════
+async function saveDoctorProfile(ctx, s) {
+  try {
+    const d = s.data
+    const payload = {
+      doctor_name: d.doctor_name || '',
+      specialty: d.specialty || '',
+      facility_type: d.facility_type || 'doctor',
+      governorate: d.governorate || '',
+      area: d.area || '',
+      clinic_address: d.clinic_address || '',
+      phone1: d.phone1 || '',
+      phone2: '',
+      whatsapp: d.whatsapp || '',
+      map_url: d.map_url || '',
+      doctor_bio: d.doctor_bio || '',
+      photoUrl: d.photoUrl || '',
+      consultation_fee: 0,
+      is_public: true,
+      is_directory_listing: true,
+      is_24h: d.is_24h || false,
+      weekly_schedule: d.weekly_schedule || buildWeeklySchedule([], '', ''),
+      verified: false,
+      is_top_rated: false,
+      rating_avg: 0,
+      rating_count: 0,
+      view_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    if (d.facility_type === 'pharmacy') payload.is_pharmacy = true
+    if (d.facility_type === 'hospital') payload.is_hospital = true
+    if (d.facility_type === 'lab') payload.is_lab = true
+    if (d.facility_type === 'physio') payload.is_physio = true
+
+    const ref = await addDoc(collection(db, 'doctor_profiles'), payload)
+    await updateDoc(doc(db, 'doctor_profiles', ref.id), { clinicId: ref.id })
+
+    clearS(ctx.chat.id)
+    const ft = FACILITY_TYPES[d.facility_type] || '🩺'
+    const loc = [d.governorate, d.area].filter(Boolean).join(' - ') || '-'
+    const sched = d.is_24h ? 'يعمل 24 ساعة' : (d.selectedDays?.length ? `${d.selectedDays.length} أيام` : '-')
+
+    await ctx.reply(
+      `✅ <b>تمت الإضافة بنجاح!</b>\n${DIV2}\n\n` +
+      `${ft} <b>د. ${d.doctor_name}</b>\n` +
+      `🩺 ${d.specialty || '-'}\n` +
+      `🏛️ ${loc}\n` +
+      `📱 ${d.phone1 || '-'}\n` +
+      `⏰ ${sched}\n\n` +
+      `🔗 عرض في الدليل:\n<code>asaasedu.com/doctor/${ref.id}</code>`,
+      { parse_mode: 'HTML', reply_markup: mainKb(store[ctx.chat.id]?.role || 'admin') }
+    )
+  } catch (e) {
+    console.error('saveDoctorProfile:', e.message)
+    clearS(ctx.chat.id)
+    await ctx.reply('❌ خطأ في الحفظ', { reply_markup: menuBtn() })
+  }
+}
+
+// ═══════════════════════════════════════
 // PLAN SELECTION
 // ═══════════════════════════════════════
 bot.callbackQuery(/^bp:(.+)$/, async (ctx) => {
@@ -819,7 +1113,7 @@ bot.callbackQuery(/^bp:(.+)$/, async (ctx) => {
 bot.catch(e => console.error('[CATCH]', e.message))
 
 // ═══════════════════════════════════════
-// START
+// START SERVER
 // ═══════════════════════════════════════
 const PORT = process.env.PORT || 3000
 const BASE_URL = process.env.RENDER_EXTERNAL_URL || process.env.RAILWAY_PUBLIC_DOMAIN || process.env.APP_URL || process.env.WEBHOOK_URL || ''
