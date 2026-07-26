@@ -563,10 +563,18 @@ bot.callbackQuery('dp:list', async (ctx) => {
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
-    const snap = await getDocs(collection(db, 'directory_listings'))
-    const docs = snap.docs
-    const counts = { all: docs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
-    docs.forEach(d => { const ft = d.data().facility_type || 'doctor'; counts[ft] = (counts[ft] || 0) + 1 })
+    const [dirSnap, clinicSnap] = await Promise.all([
+      getDocs(collection(db, 'directory_listings')),
+      getDocs(collection(db, 'clinics'))
+    ])
+    const allDocs = [...clinicSnap.docs.map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
+                     ...dirSnap.docs.map(d => ({ _type: 'listing', id: d.id, data: () => d.data() }))]
+    const counts = { all: allDocs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
+    allDocs.forEach(d => {
+      const p = d.data()
+      const ft = d._type === 'clinic' ? 'doctor' : (p.facility_type || 'doctor')
+      counts[ft] = (counts[ft] || 0) + 1
+    })
     const kb = new InlineKeyboard()
       .text(`📋 الكل (${counts.all})`, 'dp:cat:all').row()
       .text(`🩺 أطباء (${counts.doctor})`, 'dp:cat:doctor')
@@ -576,31 +584,50 @@ bot.callbackQuery('dp:list', async (ctx) => {
       .text(`🦴 علاج طبيعي (${counts.physio})`, 'dp:cat:physio').row()
       .text('➕ إضافة منشأة', 'dp:new').row()
       .text('◀️ رجوع', 'back')
-    await edit(ctx, `<b>🩺 الدليل</b> — ${counts.all} منشأة\n${DIV}\n\nاختر القسم 👇`, { reply_markup: kb })
+    await edit(ctx, `<b>🩺 الدليل</b> — ${counts.all} منشأة\n${DIV}\n\n⭐ العيادات المشتركة أولاً\nاختر القسم 👇`, { reply_markup: kb })
   } catch (e) { console.error('dp:list:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
 
-function buildCategoryList(docs, filter) {
+function buildCategoryList(docs, filter, clinicDocs = []) {
   const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطباء', pharmacy: '💊 صيدليات', hospital: '🏥 مستشفيات', lab: '🔬 مختبرات', physio: '🦴 علاج طبيعي' }
-  let filtered = filter === 'all' ? docs : docs.filter(d => (d.data().facility_type || 'doctor') === filter)
-  filtered.sort((a, b) => {
-    const a24 = a.data().is_24h ? 1 : 0, b24 = b.data().is_24h ? 1 : 0
-    if (b24 !== a24) return b24 - a24
-    return (b.data().created_at || '').localeCompare(a.data().created_at || '')
+
+  const items = []
+
+  clinicDocs.forEach(d => {
+    const c = d.data()
+    if (c.status !== 'active') return
+    const ft = 'doctor'
+    if (filter !== 'all' && ft !== filter) return
+    items.push({ type: 'clinic', id: d.id, name: c.name, specialty: c.specialty || '-', ft, status: c.status, plan: c.plan })
   })
+
+  docs.forEach(d => {
+    const p = d.data()
+    const ft = p.facility_type || 'doctor'
+    if (filter !== 'all' && ft !== filter) return
+    items.push({ type: 'listing', id: d.id, name: p.doctor_name || '-', specialty: p.specialty || '-', ft, enabled: p.enabled, is24h: p.is_24h })
+  })
+
   const label = CAT_LABELS[filter] || 'الكل'
-  const msgLines = [`<b>${label}</b> — ${filtered.length}\n${DIV}\n`]
+  const msgLines = [`<b>${label}</b> — ${items.length}\n${DIV}\n`]
   const kb = new InlineKeyboard()
-  if (!filtered.length) {
+  if (!items.length) {
     msgLines.push('📭 لا يوجد عناصر')
   } else {
-    filtered.forEach((d, i) => {
-      const p = d.data()
-      const vis = p.enabled !== false ? '🟢' : '🔴'
-      const ft = FACILITY_TYPES[p.facility_type] || '🩺'
-      const h24 = p.is_24h ? '⏰' : ''
-      msgLines.push(`${vis} <b>${i + 1}.</b> ${ft} ${p.doctor_name || '-'} — ${p.specialty || '-'} ${h24}`)
-      kb.text(`${vis} ${p.doctor_name || 'منشأة'}`, `dp:show:${d.id}`).row()
+    items.forEach((item, i) => {
+      const icon = FACILITY_TYPES[item.ft] || '🩺'
+      let vis = ''
+      if (item.type === 'clinic') {
+        vis = '⭐'
+        const planBadge = item.plan === 'enterprise' ? '🟣' : item.plan === 'premium' ? '🔵' : '🟢'
+        msgLines.push(`${vis} <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} ${planBadge} مشترك`)
+        kb.text(`${vis} ${item.name}`, `c:show:${item.id}`).row()
+      } else {
+        vis = item.enabled !== false ? '🟢' : '🔴'
+        const h24 = item.is24h ? '⏰' : ''
+        msgLines.push(`${vis} <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} ${h24}`)
+        kb.text(`${vis} ${item.name}`, `dp:show:${item.id}`).row()
+      }
     })
   }
   const catBtns = [
@@ -618,9 +645,11 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const filter = ctx.match[1]
-    const snap = await getDocs(collection(db, 'directory_listings'))
-    const docs = snap.docs
-    const { text, kb } = buildCategoryList(docs, filter)
+    const [dirSnap, clinicSnap] = await Promise.all([
+      getDocs(collection(db, 'directory_listings')),
+      getDocs(collection(db, 'clinics'))
+    ])
+    const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs)
     await edit(ctx, text, { reply_markup: kb })
   } catch (e) { console.error('dp:cat:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
