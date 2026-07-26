@@ -563,16 +563,21 @@ bot.callbackQuery('dp:list', async (ctx) => {
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
-    const [dirSnap, clinicSnap] = await Promise.all([
+    const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
       getDocs(collection(db, 'directory_listings')),
-      getDocs(collection(db, 'clinics'))
+      getDocs(collection(db, 'clinics')),
+      getDocs(query(collection(db, 'doctor_profiles'), where('is_public', '==', true)))
     ])
-    const allDocs = [...clinicSnap.docs.map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
-                     ...dirSnap.docs.map(d => ({ _type: 'listing', id: d.id, data: () => d.data() }))]
+    const allDocs = [
+      ...profileSnap.docs.map(d => ({ _type: 'profile', id: d.id, data: () => d.data() })),
+      ...clinicSnap.docs.map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
+      ...dirSnap.docs.map(d => ({ _type: 'listing', id: d.id, data: () => d.data() }))
+    ]
     const counts = { all: allDocs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
     allDocs.forEach(d => {
       const p = d.data()
-      const ft = d._type === 'clinic' ? 'doctor' : (p.facility_type || 'doctor')
+      let ft = 'doctor'
+      if (d._type === 'listing') ft = p.facility_type || 'doctor'
       counts[ft] = (counts[ft] || 0) + 1
     })
     const kb = new InlineKeyboard()
@@ -588,10 +593,17 @@ bot.callbackQuery('dp:list', async (ctx) => {
   } catch (e) { console.error('dp:list:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
 
-function buildCategoryList(docs, filter, clinicDocs = []) {
+function buildCategoryList(docs, filter, clinicDocs = [], profileDocs = []) {
   const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطباء', pharmacy: '💊 صيدليات', hospital: '🏥 مستشفيات', lab: '🔬 مختبرات', physio: '🦴 علاج طبيعي' }
 
   const items = []
+
+  profileDocs.forEach(d => {
+    const p = d.data()
+    const ft = p.facility_type || 'doctor'
+    if (filter !== 'all' && ft !== filter) return
+    items.push({ type: 'profile', id: d.id, name: 'د. ' + (p.doctor_name || '-'), specialty: p.specialty || '-', ft, is24h: p.is_24h, plan: 'مشترك' })
+  })
 
   clinicDocs.forEach(d => {
     const c = d.data()
@@ -616,14 +628,16 @@ function buildCategoryList(docs, filter, clinicDocs = []) {
   } else {
     items.forEach((item, i) => {
       const icon = FACILITY_TYPES[item.ft] || '🩺'
-      let vis = ''
-      if (item.type === 'clinic') {
-        vis = '⭐'
+      if (item.type === 'profile') {
+        const h24 = item.is24h ? '⏰' : ''
+        msgLines.push(`⭐ <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} مشترك ${h24}`)
+        kb.text(`⭐ ${item.name}`, `dp:showprof:${item.id}`).row()
+      } else if (item.type === 'clinic') {
         const planBadge = item.plan === 'enterprise' ? '🟣' : item.plan === 'premium' ? '🔵' : '🟢'
-        msgLines.push(`${vis} <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} ${planBadge} مشترك`)
-        kb.text(`${vis} ${item.name}`, `c:show:${item.id}`).row()
+        msgLines.push(`⭐ <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} ${planBadge}`)
+        kb.text(`⭐ ${item.name}`, `c:show:${item.id}`).row()
       } else {
-        vis = item.enabled !== false ? '🟢' : '🔴'
+        const vis = item.enabled !== false ? '🟢' : '🔴'
         const h24 = item.is24h ? '⏰' : ''
         msgLines.push(`${vis} <b>${i + 1}.</b> ${icon} ${item.name} — ${item.specialty} ${h24}`)
         kb.text(`${vis} ${item.name}`, `dp:show:${item.id}`).row()
@@ -645,11 +659,12 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const filter = ctx.match[1]
-    const [dirSnap, clinicSnap] = await Promise.all([
+    const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
       getDocs(collection(db, 'directory_listings')),
-      getDocs(collection(db, 'clinics'))
+      getDocs(collection(db, 'clinics')),
+      getDocs(query(collection(db, 'doctor_profiles'), where('is_public', '==', true)))
     ])
-    const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs)
+    const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs, profileSnap.docs)
     await edit(ctx, text, { reply_markup: kb })
   } catch (e) { console.error('dp:cat:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
@@ -694,6 +709,47 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
       .text('◀️ الدليل', 'dp:list').text('🏠', 'back')
     await edit(ctx, msg, { reply_markup: kb })
   } catch (e) { console.error('dp:show:', e.message) }
+})
+
+bot.callbackQuery(/^dp:showprof:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
+  try {
+    const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
+    if (!snap.exists()) return ctx.reply('❌ غير موجود.')
+    const p = snap.data()
+    const h24 = p.is_24h ? '⏰ 24 ساعة' : '🕐 ساعات محددة'
+    let scheduleText = ''
+    if (p.is_24h) {
+      scheduleText = 'يعمل 24/7'
+    } else if (p.clinic_open_time && p.clinic_close_time) {
+      scheduleText = `${p.clinic_open_time} - ${p.clinic_close_time}`
+    } else if (p.weekly_schedule && p.weekly_schedule.length) {
+      const enabled = p.weekly_schedule.filter(d => d.enabled)
+      if (enabled.length) scheduleText = enabled.map(d => `${d.name} ${d.from || ''}-${d.to || ''}`).join('\n')
+      else scheduleText = 'غير محدد'
+    } else {
+      scheduleText = 'غير محدد'
+    }
+    const phone = p.phone || p.phone1 || '-'
+    const address = p.address || p.clinic_address || '-'
+    const msg =
+      `⭐ <b>عيادة مشتركة</b>\n\n` +
+      `<b>د. ${p.doctor_name || '-'}</b>\n${DIV2}\n\n` +
+      `🩺 <b>التخصص:</b> ${p.specialty || '-'}\n` +
+      `🏛️ <b>المحافظة:</b> ${p.governorate || '-'} — ${p.area || '-'}\n` +
+      `📍 <b>العنوان:</b> ${address}\n\n` +
+      `📱 <b>الهاتف:</b> ${phone}\n` +
+      `💬 <b>واتساب:</b> ${p.whatsapp || '-'}\n` +
+      `🔗 <b>الخريطة:</b> ${p.map_url || '-'}\n\n` +
+      `📝 <b>النبذة:</b> ${(p.doctor_bio || '-').substring(0, 120)}${(p.doctor_bio || '').length > 120 ? '...' : ''}\n\n` +
+      `${h24}\n📅 <b>الدوام:</b> ${scheduleText}\n\n` +
+      `👁 ${p.view_count || 0} مشاهدة  •  ⭐ ${p.rating_avg || 0} (${p.rating_count || 0})\n` +
+      `💰 ${p.consultation_fee ? Number(p.consultation_fee).toLocaleString('ar-EG') + ' د.ع' : 'مجاني'}`
+    const kb = new InlineKeyboard()
+      .text('◀️ الدليل', 'dp:list').text('🏠', 'back')
+    await edit(ctx, msg, { reply_markup: kb })
+  } catch (e) { console.error('dp:showprof:', e.message) }
 })
 
 bot.callbackQuery('dp:new', async (ctx) => {
