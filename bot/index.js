@@ -147,15 +147,24 @@ function mainKb(role) {
 }
 
 async function uploadPhotoToImgbb(buf) {
-  const b64 = buf.toString('base64')
   const imgbbKey = process.env.IMGBB_API_KEY || '5e643e07b1f815e2c3e668267e5081c3'
+  const boundary = '----FormBoundary' + Date.now()
+  const fileName = `photo_${Date.now()}.jpg`
+  const header = Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${fileName}"\r\nContent-Type: image/jpeg\r\n\r\n`)
+  const footer = Buffer.from(`\r\n--${boundary}--\r\n`)
+  const body = Buffer.concat([header, buf, footer])
   const res = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'image=' + encodeURIComponent(b64)
+    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body
   })
   const data = await res.json()
-  return data.success ? data.data.url : null
+  if (data.success) {
+    console.log('✅ imgBB upload OK:', data.data.url)
+    return data.data.url
+  }
+  console.error('❌ imgBB error:', JSON.stringify(data).substring(0, 200))
+  return null
 }
 
 async function downloadTelegramPhoto(ctx, photo) {
