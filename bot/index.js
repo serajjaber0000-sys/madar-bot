@@ -534,12 +534,56 @@ bot.callbackQuery(/^dl:show:(.+)$/, async (ctx) => {
       `💰 ${fee}  •  👁 ${l.view_count || 0}\n` +
       `📌 ${st}`,
       { reply_markup: new InlineKeyboard()
+        .text('✏️ تعديل', `dl:edit:${ctx.match[1]}`).row()
         .text(l.enabled !== false ? '🔴 إخفاء' : '🟢 إظهار', `dl:tg:${ctx.match[1]}`).row()
         .text('🗑️ حذف', `dl:rm:${ctx.match[1]}`).row()
         .text('◀️ الدليل', 'dl:list').text('🏠', 'back')
       }
     )
   } catch (e) { console.error(e.message) }
+})
+
+// ═══════════════════════════════════════
+// EDIT DIRECTORY LISTING
+// ═══════════════════════════════════════
+bot.callbackQuery(/^dl:edit:(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const id = ctx.match[1]
+  try {
+    const snap = await getDoc(doc(db, 'directory_listings', id))
+    if (!snap.exists()) return ctx.reply('❌ غير موجود.')
+    const l = snap.data()
+    const kb = new InlineKeyboard()
+      .text('✏️ الاسم', `dl:set:doctor_name:${id}`).text('🩺 التخصص', `dl:set:specialty:${id}`).row()
+      .text('🏛️ المحافظة', `dl:set:governorate:${id}`).text('📍 المنطقة', `dl:set:area:${id}`).row()
+      .text('📱 الهاتف', `dl:set:phone:${id}`).text('💬 واتساب', `dl:set:whatsapp:${id}`).row()
+      .text('🏠 العنوان', `dl:set:address:${id}`).text('💰 الكشفية', `dl:set:consultation_fee:${id}`).row()
+      .text('⏰ دوام 24 ساعة', `dl:set:is_24h:${id}`).row()
+      .text('◀️ الرجوع', `dl:show:${id}`)
+    await edit(ctx, `<b>✏️ تعديل: د. ${l.doctor_name}</b>\n${DIV}\n\nاختر ما تريد تعديله 👇`, { reply_markup: kb })
+  } catch (e) { console.error(e.message) }
+})
+
+const EDITABLE_FIELDS = { doctor_name: '✏️ الاسم الجديد', specialty: '🩺 التخصص الجديد', governorate: '🏛️ المحافظة الجديدة', area: '📍 المنطقة الجديدة', phone: '📱 رقم الهاتف الجديد', whatsapp: '💬 رقم الواتساب الجديد', address: '🏠 العنوان الجديد', consultation_fee: '💰 الكشفية الجديدة (رقم فقط)' }
+
+bot.callbackQuery(/^dl:set:([^:]+):(.+)$/, async (ctx) => {
+  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  const field = ctx.match[1], id = ctx.match[2]
+  const s = getS(ctx.chat.id)
+  if (field === 'is_24h') {
+    try {
+      const snap = await getDoc(doc(db, 'directory_listings', id))
+      const cur = snap.data()?.is_24h || false
+      await updateDoc(doc(db, 'directory_listings', id), { is_24h: !cur })
+      await edit(ctx, `✅ تم تغيير دوام 24 ساعة إلى: <b>${!cur ? 'نعم ✅' : 'لا ❌'}</b>`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dl:show:${id}`) })
+    } catch (e) { console.error(e.message) }
+    return
+  }
+  if (!EDITABLE_FIELDS[field]) return
+  s.step = 'dl_edit_field'; s.data = { field, editId: id }
+  await edit(ctx, `📝 <b>${EDITABLE_FIELDS[field]}</b>\n${DIV}\n\nاكتب القيمة الجديدة أو اكتب - لإلغاء:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dl:edit:${id}`) })
 })
 
 bot.callbackQuery(/^dl:tg:(.+)$/, async (ctx) => {
@@ -599,8 +643,14 @@ bot.on('message:text', async (ctx) => {
       const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
       return ctx.reply('🩺 <b>2/7</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
-    if (s.step === 'dl_spec') { if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
+    if (s.step === 'dl_spec') {
+      if (text === 'أخرى') { s.step = 'dl_spec_custom'; return ctx.reply('✏️ اكتب التخصص يدوياً:', { reply_markup: { remove_keyboard: true } }) }
+      if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
       s.data.specialty = text; s.step = 'dl_gov'
+      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+      return ctx.reply('🏛️ <b>3/7</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    }
+    if (s.step === 'dl_spec_custom') { s.data.specialty = text; s.step = 'dl_gov'
       const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
       return ctx.reply('🏛️ <b>3/7</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
@@ -616,6 +666,22 @@ bot.on('message:text', async (ctx) => {
     }
     if (s.step === 'dl_addr') { s.data.address = text === '-' ? '' : text; s.step = 'dl_photo'
       return ctx.reply('📸 صورة الطبيب (ارسل صورة أو اكتب - للتخطي):', { reply_markup: new InlineKeyboard().text('⏭️تخطي', 'dl:skipphoto') })
+    }
+
+    // ── EDIT DIRECTORY LISTING ──
+    if (s.step === 'dl_edit_field') {
+      const { field, editId } = s.data
+      if (text === '-') { clearS(ctx.chat.id); return ctx.reply('❌ تم الإلغاء') }
+      const update = {}
+      if (field === 'consultation_fee') {
+        const fee = Number(text); if (isNaN(fee) || fee < 0) return ctx.reply('❌ رقم فقط، حاول مرة أخرى:')
+        update[field] = fee
+      } else {
+        update[field] = text
+      }
+      try { await updateDoc(doc(db, 'directory_listings', editId), update) } catch (e) { console.error(e.message) }
+      clearS(ctx.chat.id)
+      return edit(ctx, `✅ تم التحديث <b>${field}</b> ← <b>${text}</b>`, { reply_markup: new InlineKeyboard().text('◀️ الرجوع', `dl:show:${editId}`) })
     }
 
     // ── CREATE CLINIC ──
