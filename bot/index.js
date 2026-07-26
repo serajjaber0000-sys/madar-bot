@@ -63,6 +63,28 @@ const SPECS = ['طب عام', 'أسنان', 'باطنية', 'قلب', 'عظام'
 const GOVS = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'القادسية', 'بابل', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار', 'دهوك', 'السليمانية', 'ميسان', 'ذي قار', 'واسط', 'المثنى', 'حلبجة']
 const PLANS = { basic: 'الأساسية', premium: 'المتقدمة', enterprise: 'المؤسسات' }
 
+const AREAS = {
+  'بغداد': ['الكرخ', 'الرصافة', 'المنصور', 'الكاظمية', 'الأعظمية', 'الكرادة', 'الجادرية', 'زيونة', 'الحارثية', 'الكفاح', 'الجوسق', 'الأمين', 'الشالجية', 'الحبيبية', 'الدورة', 'الحويج', 'الحناوية', 'الشعب', 'البياع', 'الحرية', 'العبيدي', 'الزوية', 'العطيفي', 'الدهامشة', 'البو عيثة', 'الحرة', 'ال挀ارة'],
+  'البصرة': ['الزبير', 'أبو الخصيب', 'الفاو', 'شط العرب', 'القرنة', 'العمارة', 'قلعة سكر', 'الرميلة', 'أبو فلوس', 'الشطرة', 'تراس', 'الهارثة', 'القرشية', 'بستان الرشيد'],
+  'نينوى': ['الموصل', 'تلكيف', 'سنجار', 'الحمدانية', 'عمادية', 'الشخانة', 'بلد', 'القیار'],
+  'أربيل': ['أربيل', 'عنكاوا', 'شقلاوة', 'سوران', 'كويسنجق', 'الشيخان'],
+  'النجف': ['النجف', 'الكوفة', 'المناذرة', 'الحيرة', 'العطار', 'الجباوي', 'المنصورية', 'الحبوبي'],
+  'كربلاء': ['كربلاء', 'الهندية', 'عين التمر', 'عنه', 'الردي', 'المحور', 'الغزالية'],
+  'القادسية': ['الديوانية', 'عفك', 'الشامية', 'الحمزة', 'الوركاء', 'البر임'],
+  'بابل': ['الحلة', 'المسيب', 'الهاشمية', 'المحاويل', 'القليع', 'البلداور', 'الزهير', 'الجعيفي', 'الكبيسة'],
+  'كركوك': ['كركوك', 'الحويجة', 'داقوق', 'دبس'],
+  'صلاح الدين': ['تكريت', 'سامراء', 'بلد', 'الدور', 'بيجي', 'الشرقاط', 'العميق'],
+  'ديالى': ['بعقوبة', 'خانقين', 'المقدادية', 'الخالص', 'خان بني سعد', 'الحيدري'],
+  'الأنبار': ['الرمادي', 'الفلوجة', 'هيت', 'حديثة', 'القائم', 'الرطبة', 'حبانية', 'الصقلاوية', 'بوعبيد', 'الزバッグ'],
+  'دهوك': ['دهوك', 'زاخو', 'سيميل', 'بردرش', 'كلار', 'شيخان', 'الكوير'],
+  'السليمانية': ['السليمانية', 'حلبجة', 'رانية', 'دوكان', 'بنجوين', 'قرة داغ'],
+  'ميسان': ['العمارة', 'المجر الكبير', 'علي الغربي', 'المجر الصغير', 'قلعة سكر', 'الشطرة'],
+  'ذي قار': ['الناصرية', 'سوق الشيوخ', 'الرفاعي', 'الشطرة', 'الجباوي', 'الكوالين'],
+  'واسط': ['الكوت', 'الحي', 'النعمانية', 'الصويرة', 'العزيزية', 'الوركاء', 'الكحلاء'],
+  'المثنى': ['السماوة', 'الرميثة', 'الوركاء', 'الشامية', 'النجد', 'المجر الكبير'],
+  'حلبجة': ['حلبجة', 'الجوما', 'بنجوين', 'شيران', 'كلار']
+}
+
 function rndEmail(n) {
   const s = n.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 8)
   return `m-${s}-${Date.now().toString(36)}@madar.io`
@@ -618,7 +640,7 @@ bot.callbackQuery('dl:new', async (ctx) => {
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const s = getS(ctx.chat.id); s.step = 'dl_name'; s.data = {}
-  await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/7:</b> اسم الطبيب`, {
+  await edit(ctx, `➕ <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/8:</b> اسم الطبيب`, {
     reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back')
   })
 })
@@ -641,28 +663,41 @@ bot.on('message:text', async (ctx) => {
     // ── DIRECTORY LISTING ──
     if (s.step === 'dl_name') { s.data.doctor_name = text; s.step = 'dl_spec'
       const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
-      return ctx.reply('🩺 <b>2/7</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🩺 <b>2/8</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
     if (s.step === 'dl_spec') {
       if (text === 'أخرى') { s.step = 'dl_spec_custom'; return ctx.reply('✏️ اكتب التخصص يدوياً:', { reply_markup: { remove_keyboard: true } }) }
       if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
       s.data.specialty = text; s.step = 'dl_gov'
       const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-      return ctx.reply('🏛️ <b>3/7</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🏛️ <b>3/8</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
     if (s.step === 'dl_spec_custom') { s.data.specialty = text; s.step = 'dl_gov'
       const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-      return ctx.reply('🏛️ <b>3/7</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      return ctx.reply('🏛️ <b>3/8</b> المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
     if (s.step === 'dl_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
-      s.data.governorate = text; s.step = 'dl_phone'
-      return ctx.reply('📱 <b>4/7</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
+      s.data.governorate = text; s.step = 'dl_area'
+      const areas = AREAS[text] || ['أخرى']
+      const kb = [...areas, 'أخرى']
+      const rows = []; for (let i = 0; i < kb.length; i += 3) rows.push(kb.slice(i, i + 3))
+      return ctx.reply('📍 <b>4/8</b> اختر المنطقة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    }
+    if (s.step === 'dl_area') {
+      if (text === 'أخرى') { s.step = 'dl_area_custom'; return ctx.reply('✏️ اكتب المنطقة يدوياً:', { reply_markup: { remove_keyboard: true } }) }
+      const areas = AREAS[s.data.governorate] || []
+      if (!areas.includes(text)) return ctx.reply('❌ اختر من القائمة')
+      s.data.area = text; s.step = 'dl_phone'
+      return ctx.reply('📱 <b>5/8</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
+    }
+    if (s.step === 'dl_area_custom') { s.data.area = text; s.step = 'dl_phone'
+      return ctx.reply('📱 <b>5/8</b> الهاتف (- للتخطي):', { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
     }
     if (s.step === 'dl_phone') { s.data.phone = text === '-' ? '' : text; s.step = 'dl_wa'
-      return ctx.reply('💬 <b>5/7</b> الواتساب (- للتخطي):', { parse_mode: 'HTML' })
+      return ctx.reply('💬 <b>6/8</b> الواتساب (- للتخطي):', { parse_mode: 'HTML' })
     }
     if (s.step === 'dl_wa') { s.data.whatsapp = text === '-' ? '' : text; s.step = 'dl_addr'
-      return ctx.reply('📍 <b>6/7</b> العنوان (- للتخطي):', { parse_mode: 'HTML' })
+      return ctx.reply('📍 <b>7/8</b> العنوان (- للتخطي):', { parse_mode: 'HTML' })
     }
     if (s.step === 'dl_addr') { s.data.address = text === '-' ? '' : text; s.step = 'dl_photo'
       return ctx.reply('📸 صورة الطبيب (ارسل صورة أو اكتب - للتخطي):', { reply_markup: new InlineKeyboard().text('⏭️تخطي', 'dl:skipphoto') })
