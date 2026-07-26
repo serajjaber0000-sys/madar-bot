@@ -834,7 +834,8 @@ const videoEmbedUrl = computed(() => {
   if ((m = url.match(/vimeo\.com\/(\d+)/))) {
     return 'https://player.vimeo.com/video/' + m[1]
   }
-  return url
+  if (url.startsWith('http') && !url.toLowerCase().includes('javascript:') && !url.toLowerCase().includes('data:')) return url
+  return ''
 })
 
 const availableDates = computed(() => {

@@ -56,17 +56,12 @@ const router = createRouter({
   routes
 })
 
-let authChecked = false
-
 router.beforeEach(async (to, from, next) => {
-  if (!authChecked) {
-    const fbUser = await waitForAuth()
-    authChecked = true
+  const fbUser = await waitForAuth()
 
-    if (!fbUser) {
-      localStorage.removeItem('user')
-      cachedUser = null
-    }
+  if (!fbUser) {
+    localStorage.removeItem('user')
+    cachedUser = null
   }
 
   const user = getStoredUser()

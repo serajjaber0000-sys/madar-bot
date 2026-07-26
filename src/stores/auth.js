@@ -140,10 +140,9 @@ export const useAuthStore = defineStore('auth', () => {
               localStorage.setItem('user', JSON.stringify(user.value))
               await doResolve()
             } else {
-              user.value = null
-              userProfile.value = null
-              localStorage.removeItem('user')
-              await doResolve()
+              logout()
+              safeResolve()
+              return
             }
           } catch (e) {
             console.error('Auth state error:', e)

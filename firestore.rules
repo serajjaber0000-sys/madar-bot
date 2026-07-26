@@ -71,30 +71,31 @@ service cloud.firestore {
     }
 
     match /patients/{id} {
-      allow get: if isSignedIn();
+      allow get: if inMyClinicRead();
       allow list: if inMyClinicRead();
-      allow create: if isSignedIn();
+      allow create: if writeMyClinic();
       allow update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
 
     match /appointments/{id} {
-      allow read: if inMyClinicRead();
+      allow get: if inMyClinicRead();
+      allow list: if true;
       allow create: if writeMyClinic() || (request.resource.data.clinicId != null && request.resource.data.device_id != null && request.resource.data.patient_name != null);
       allow update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
 
     match /treatments/{id} {
-      allow get: if isSignedIn() && inMyClinicRead();
-      allow list: if isSignedIn();
+      allow get: if inMyClinicRead();
+      allow list: if inMyClinicRead();
       allow create, update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
 
     match /visits/{id} {
-      allow get: if isSignedIn() && inMyClinicRead();
-      allow list: if isSignedIn();
+      allow get: if inMyClinicRead();
+      allow list: if inMyClinicRead();
       allow create, update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
@@ -106,15 +107,15 @@ service cloud.firestore {
     }
 
     match /diagnoses/{id} {
-      allow get: if isSignedIn() && inMyClinicRead();
-      allow list: if isSignedIn();
+      allow get: if inMyClinicRead();
+      allow list: if inMyClinicRead();
       allow create, update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
 
     match /prescriptions/{id} {
-      allow get: if isSignedIn() && inMyClinicRead();
-      allow list: if isSignedIn();
+      allow get: if inMyClinicRead();
+      allow list: if inMyClinicRead();
       allow create, update: if writeMyClinic();
       allow delete: if inMyClinic();
     }
@@ -138,14 +139,14 @@ service cloud.firestore {
     }
 
     match /admin_users/{id} {
-      allow read: if isSignedIn();
+      allow read: if isSuperAdmin();
       allow write: if isSuperAdmin();
     }
 
     match /doctor_settings/{id} {
       allow get: if true;
       allow list: if true;
-      allow create, update, delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
+      allow create, update, delete: if isSignedIn() && (isSuperAdmin() || (myRole() == 'owner' && request.resource.data.clinicId == myClinicId()));
     }
 
     match /general_settings/{id} {
@@ -238,7 +239,7 @@ service cloud.firestore {
 
     match /notifications/{id} {
       allow read: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
-      allow list: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner' || myRole() == 'secretary');
+      allow list: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
       allow create: if isSignedIn() && (isSuperAdmin() || request.resource.data.clinicId == myClinicId()) || (request.resource.data.type == 'booking_request' && request.resource.data.clinicId != null);
       allow update: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
       allow delete: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
@@ -246,21 +247,21 @@ service cloud.firestore {
 
     match /patient_notifications/{id} {
       allow read: if true;
-      allow create: if request.resource.data.device_id != null && request.resource.data.device_id != '';
+      allow create: if request.resource.data.device_id != null && request.resource.data.device_id != '' && request.resource.data.clinicId != null;
       allow update: if true;
       allow delete: if true;
     }
 
     match /patient_chat_rooms/{roomId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if request.resource.data.clinicId != null && request.resource.data.device_id != null && request.resource.data.patient_name != null;
       allow update: if true;
       allow delete: if isSignedIn() && isSuperAdmin();
     }
 
     match /patient_chat_messages/{msgId} {
       allow read: if true;
-      allow create: if true;
+      allow create: if request.resource.data.roomId != null && request.resource.data.clinicId != null && request.resource.data.sender != null && request.resource.data.text != null;
       allow update: if true;
       allow delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'secretary');
     }

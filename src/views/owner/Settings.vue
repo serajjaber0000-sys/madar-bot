@@ -754,7 +754,7 @@ async function importBackup(e) {
       for (const docData of docs) {
         const { id, ...rest } = docData
         if (id) {
-          await setDoc(doc(db, colName, id), rest)
+          await setDoc(doc(db, colName, id), { ...rest, clinicId: authStore.clinicId })
         }
       }
     }

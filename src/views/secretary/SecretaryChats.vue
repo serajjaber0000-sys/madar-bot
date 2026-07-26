@@ -200,7 +200,8 @@ async function send() {
 async function markAsRead(roomId) {
   const q = query(
     collection(db, 'patient_chat_messages'),
-    where('roomId', '==', roomId)
+    where('roomId', '==', roomId),
+    where('clinicId', '==', clinicId.value)
   )
   const snap = await import('firebase/firestore').then(m => m.getDocs(q))
   for (const d of snap.docs) {
@@ -226,7 +227,8 @@ function listenChat(roomId) {
   chatLoading.value = true
   const q = query(
     collection(db, 'patient_chat_messages'),
-    where('roomId', '==', roomId)
+    where('roomId', '==', roomId),
+    where('clinicId', '==', clinicId.value)
   )
   unsubChat = onSnapshot(q, (snap) => {
     chatMessages.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''))
