@@ -442,14 +442,15 @@ bot.callbackQuery('stats', async (ctx) => {
       getDocs(collection(db, 'bot_founders')),
       getDocs(collection(db, 'clinics')),
       getDocs(collection(db, 'patients')),
-      getDocs(query(collection(db, 'doctor_profiles'), where('is_directory_listing', '==', true)))
+      getDocs(collection(db, 'doctor_profiles'))
     ])
     const active = cc.docs.filter(d => d.data().status === 'active').length
+    const dpCount = dpSnap.docs.filter(d => d.data().is_directory_listing === true).length
     await edit(ctx,
       `<b>📊 الإحصائيات</b>\n${DIV2}\n\n` +
       `👥 المؤسسسين: <b>${fc.size}</b>\n` +
       `🏥 العيادات: <b>${cc.size}</b> (${active} نشطة)\n` +
-      `🩺 الدليل: <b>${dpSnap.size}</b>\n` +
+      `🩺 الدليل: <b>${dpCount}</b>\n` +
       `🧑‍⚕️ المرضى: <b>${pc.size}</b>\n\n` +
       `${DIV}\n📅 ${new Date().toLocaleDateString('ar-EG')}`,
       { reply_markup: menuBtn() }
@@ -511,24 +512,25 @@ bot.callbackQuery('my:profile', async (ctx) => {
 // ═══════════════════════════════════════════════════════
 
 bot.callbackQuery('dp:skipphoto', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   const s = getS(ctx.chat.id)
   if (s.step !== 'dp_photo') return
   s.data.photoUrl = ''
   s.step = 'dp_name'
-  await ctx.answerCallbackQuery({ cacheTime: 0 })
   await edit(ctx, `✅ تم التخطي\n\n<b>2/13:</b> ✏️ اسم الطبيب أو المنشأة:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', 'back') })
 })
 
 bot.callbackQuery('dp:list', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
-    const snap = await getDocs(query(collection(db, 'doctor_profiles'), where('is_directory_listing', '==', true), orderBy('created_at', 'desc')))
-    if (snap.empty) return edit(ctx, `🩺 <b>دليل الأطباء</b>\n${DIV}\n\n📭 لا يوجد أطباء بعد`, { reply_markup: new InlineKeyboard().text('➕ إضافة طبيب', 'dp:new').row().text('◀️', 'back') })
-    let msg = `<b>🩺 الدليل</b> — ${snap.size}\n${DIV}\n\n`
+    const snap = await getDocs(collection(db, 'doctor_profiles'))
+    const docs = snap.docs.filter(d => d.data().is_directory_listing === true).sort((a, b) => (b.data().created_at || '').localeCompare(a.data().created_at || ''))
+    if (!docs.length) return edit(ctx, `🩺 <b>دليل الأطباء</b>\n${DIV}\n\n📭 لا يوجد أطباء بعد`, { reply_markup: new InlineKeyboard().text('➕ إضافة طبيب', 'dp:new').row().text('◀️', 'back') })
+    let msg = `<b>🩺 الدليل</b> — ${docs.length}\n${DIV}\n\n`
     const kb = new InlineKeyboard()
-    snap.docs.forEach((d, i) => {
+    docs.forEach((d, i) => {
       const p = d.data()
       const vis = p.is_public !== false ? '🟢' : '🔴'
       const ft = FACILITY_TYPES[p.facility_type] || '🩺'
@@ -541,8 +543,8 @@ bot.callbackQuery('dp:list', async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return ctx.reply('❌ غير موجود.')
@@ -585,8 +587,8 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery('dp:new', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   const s = getS(ctx.chat.id); s.step = 'dp_photo'; s.data = {}
   await edit(ctx, `🩺 <b>إضافة طبيب للدليل</b>\n${DIV}\n\n<b>1/13:</b> 📸 صورة الطبيب أو المنشأة\n\nارسل صورة أو اضغط التخطي:`, {
     reply_markup: new InlineKeyboard().text('⏭️ تخطي', 'dp:skipphoto').row().text('❌ إلغاء', 'back')
@@ -594,8 +596,8 @@ bot.callbackQuery('dp:new', async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:edit:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const id = ctx.match[1]
   const kb = new InlineKeyboard()
     .text('📸 الصورة', `dp:set:photo:${id}`).text('✏️ الاسم', `dp:set:doctor_name:${id}`).row()
@@ -612,8 +614,8 @@ bot.callbackQuery(/^dp:edit:(.+)$/, async (ctx) => {
 const DP_TEXT_FIELDS = { doctor_name: '✏️ الاسم الجديد', specialty: '🩺 التخصص الجديد', governorate: '🏛️ المحافظة الجديدة', area: '📍 المنطقة الجديدة', phone1: '📱 رقم الهاتف الجديد', whatsapp: '💬 رقم الواتساب الجديد', clinic_address: '🏠 العنوان الجديد', map_url: '🔗 رابط الخريطة الجديد', doctor_bio: '📝 النبذة الجديدة', consultation_fee: '💰 الكشفية الجديدة (رقم فقط)' }
 
 bot.callbackQuery(/^dp:set:([^:]+):(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const field = ctx.match[1], id = ctx.match[2]
 
   if (field === 'photo') {
@@ -665,8 +667,8 @@ bot.callbackQuery(/^dp:set:([^:]+):(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:ft:([^:]+):(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const type = ctx.match[1], id = ctx.match[2]
   const flags = { doctor: {}, pharmacy: { is_pharmacy: true }, hospital: { is_hospital: true }, lab: { is_lab: true }, physio: { is_physio: true } }
   const update = { facility_type: type, ...flags[type] || {} }
@@ -677,8 +679,8 @@ bot.callbackQuery(/^dp:ft:([^:]+):(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:tg:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return
@@ -691,8 +693,8 @@ bot.callbackQuery(/^dp:tg:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:set24:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   try {
     const snap = await getDoc(doc(db, 'doctor_profiles', ctx.match[1]))
     if (!snap.exists()) return
@@ -710,8 +712,8 @@ bot.callbackQuery(/^dp:set24:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:setschedule:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const id = ctx.match[1]
   const s = getS(ctx.chat.id)
   s.step = 'dp_edit_schedule'; s.data = { editId: id, selectedDays: [] }
@@ -725,8 +727,8 @@ bot.callbackQuery(/^dp:setschedule:(.+)$/, async (ctx) => {
 })
 
 bot.callbackQuery(/^dpd:(\d+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const idx = Number(ctx.match[1])
   const s = getS(ctx.chat.id)
   if (!s.data.selectedDays) s.data.selectedDays = []
@@ -740,8 +742,8 @@ bot.callbackQuery(/^dpd:(\d+)$/, async (ctx) => {
 })
 
 bot.callbackQuery('dpd:save', async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const s = getS(ctx.chat.id)
   if (!s.data.selectedDays || !s.data.selectedDays.length) {
     return edit(ctx, `⚠️ اختر يوماً واحداً على الأقل!`, { reply_markup: renderDaysKb(s.data.selectedDays || []) })
@@ -757,16 +759,16 @@ bot.callbackQuery('dpd:save', async (ctx) => {
 })
 
 bot.callbackQuery(/^dp:rm:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   await edit(ctx, `⚠️ <b>حذف الطبيب من الدليل؟</b>`, {
     reply_markup: new InlineKeyboard().text('✅ نعم، حذف', `dp:rok:${ctx.match[1]}`).text('❌ لا', 'dp:list')
   })
 })
 
 bot.callbackQuery(/^dp:rok:(.+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try { await deleteDoc(doc(db, 'doctor_profiles', ctx.match[1])); await edit(ctx, `✅ تم الحذف`, { reply_markup: menuBtn() }) } catch {}
 })
 
@@ -985,8 +987,8 @@ bot.on('message:text', async (ctx) => {
 // FACILITY TYPE SELECTION (Wizard)
 // ═══════════════════════════════════════
 bot.callbackQuery(/^dpt:([^:]+)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const type = ctx.match[1]
   const s = getS(ctx.chat.id)
   if (s.step !== 'dp_type') return
@@ -1001,8 +1003,8 @@ bot.callbackQuery(/^dpt:([^:]+)$/, async (ctx) => {
 // 24H SELECTION (Wizard)
 // ═══════════════════════════════════════
 bot.callbackQuery(/^dp24h:(yes|no)$/, async (ctx) => {
-  if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
   const s = getS(ctx.chat.id)
   if (s.step !== 'dp_24h') return
   const is24h = ctx.match[1] === 'yes'
