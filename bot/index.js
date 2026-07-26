@@ -566,11 +566,12 @@ bot.callbackQuery('dp:list', async (ctx) => {
     const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
       getDocs(collection(db, 'directory_listings')),
       getDocs(collection(db, 'clinics')),
-      getDocs(query(collection(db, 'doctor_profiles'), where('is_public', '==', true)))
+      getDocs(collection(db, 'doctor_profiles'))
     ])
+    const profileDocs = profileSnap.docs.filter(d => d.data().is_public === true)
     const allDocs = [
-      ...profileSnap.docs.map(d => ({ _type: 'profile', id: d.id, data: () => d.data() })),
-      ...clinicSnap.docs.map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
+      ...profileDocs.map(d => ({ _type: 'profile', id: d.id, data: () => d.data() })),
+      ...clinicSnap.docs.filter(d => d.data().status === 'active').map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
       ...dirSnap.docs.map(d => ({ _type: 'listing', id: d.id, data: () => d.data() }))
     ]
     const counts = { all: allDocs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
@@ -662,9 +663,10 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
     const [dirSnap, clinicSnap, profileSnap] = await Promise.all([
       getDocs(collection(db, 'directory_listings')),
       getDocs(collection(db, 'clinics')),
-      getDocs(query(collection(db, 'doctor_profiles'), where('is_public', '==', true)))
+      getDocs(collection(db, 'doctor_profiles'))
     ])
-    const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs, profileSnap.docs)
+    const profileDocs = profileSnap.docs.filter(d => d.data().is_public === true)
+    const { text, kb } = buildCategoryList(dirSnap.docs, filter, clinicSnap.docs, profileDocs)
     await edit(ctx, text, { reply_markup: kb })
   } catch (e) { console.error('dp:cat:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
