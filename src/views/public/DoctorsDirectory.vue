@@ -227,6 +227,7 @@ const router = useRouter()
 
 const loading = ref(true)
 const directoryDocs = shallowRef([])
+const subscribedDocs = shallowRef([])
 const selectedGovernorate = ref('')
 const specialty = ref('')
 const selectedArea = ref('')
@@ -244,6 +245,7 @@ let sliderTimer = null
 let touchStartX = 0
 let unsubSliders = null
 let unsubDirectory = null
+let unsubProfiles = null
 
 const governorates = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'القادسية', 'بابل', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار', 'دهوك', 'السليمانية', 'ميسان', 'ذي قار', 'واسط', 'المثنى', 'حلبجة']
 
@@ -268,7 +270,12 @@ function setCategory(cat) {
 
 // base list restricted to the current category
 const allDoctors = computed(() => {
-  return directoryDocs.value.map(d => ({ ...d, _source: 'listing' }))
+  const listings = directoryDocs.value.map(d => ({ ...d, _source: 'listing' }))
+  const subscribed = subscribedDocs.value.map(d => ({ ...d, _source: 'subscribed' }))
+  const seen = new Set(listings.map(d => d.id))
+  const merged = [...listings]
+  for (const d of subscribed) { if (!seen.has(d.id)) merged.push(d) }
+  return merged
 })
 
 const categoryList = computed(() => {
@@ -352,7 +359,11 @@ function resetAll() { selectedGovernorate.value = ''; specialty.value = ''; sele
 watch(selectedGovernorate, () => { if (selectedArea.value && !areas.value.includes(selectedArea.value)) selectedArea.value = '' })
 
 function openDoctor(doc) {
-  router.push('/listing/' + doc.id)
+  if (doc._source === 'subscribed' && doc.clinicId) {
+    router.push('/doctor/' + doc.clinicId)
+  } else {
+    router.push('/listing/' + doc.id)
+  }
 }
 
 function getTypeIcon24h(doc) {
@@ -398,6 +409,16 @@ onMounted(async () => {
     loading.value = false
   }, () => { loading.value = false })
 
+  unsubProfiles = onSnapshot(collection(db, 'doctor_profiles'), (snap) => {
+    const list = []
+    snap.forEach(d => {
+      const data = d.data()
+      if (data.is_public !== false) list.push({ id: d.id, ...data, is_directory_listing: false, is_subscribed: true })
+    })
+    subscribedDocs.value = list
+    if (loading.value) loading.value = false
+  }, () => { if (loading.value) loading.value = false })
+
   unsubSliders = onSnapshot(collection(db, 'site_sliders'), (snap) => {
     const now = new Date().toISOString().split('T')[0]
     const loaded = []
@@ -416,6 +437,7 @@ onUnmounted(() => {
   if (sliderTimer) clearInterval(sliderTimer)
   if (unsubSliders) unsubSliders()
   if (unsubDirectory) unsubDirectory()
+  if (unsubProfiles) unsubProfiles()
 })
 </script>
 
