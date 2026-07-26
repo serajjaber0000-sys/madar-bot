@@ -158,7 +158,7 @@ async function fetchData() {
 
     function calcIncome(start, end) {
       return allAppts.filter(a => a.appointment_date >= start && a.appointment_date < end).reduce((sum, a) => {
-        if (a.entered === 1 && a.consultation_fee) return sum + (Number(a.consultation_fee) || 0)
+        if (a.status === 'arrived' && a.consultation_fee) return sum + (Number(a.consultation_fee) || 0)
         if (a.payment_status === 'paid' || a.payment_status === 'review') return sum + (Number(a.amount) || 0)
         return sum
       }, 0)

@@ -478,7 +478,7 @@ function toggleNotifPanel() {
 }
 
 const todayQueue = ref([])
-  const _n = new Date(); const todayKey = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`
+const getTodayKey = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` }
 const searchQuery = ref('')
 const searchResults = ref([])
 const searching = ref(false)
@@ -490,7 +490,7 @@ let lastPendingCount = 0
 const savingNotif = ref(false)
 const showSetTimeModal = ref(false)
 const setTimeTarget = ref(null)
-const setTimeDate = ref(todayKey)
+const setTimeDate = ref(getTodayKey())
 const setTimeTime = ref('')
 const showBookingModal = ref(false)
 const showAddPatientModal = ref(false)
@@ -507,7 +507,7 @@ const editFeeValue = ref(null)
 const savingEditFee = ref(false)
 const bookingSearch = ref('')
 const bookingPatients = ref([])
-const booking = ref({ patient_id: '', patient_name: '', patient_phone: '', patient_age: null, date: todayKey, start_time: '', end_time: '', fee: null, notes: '' })
+const booking = ref({ patient_id: '', patient_name: '', patient_phone: '', patient_age: null, date: getTodayKey(), start_time: '', end_time: '', fee: null, notes: '' })
 const newPatient = ref({ full_name: '', age: null, gender: '', blood_type: '', weight: null, height: null, phone: '', address: '', chronic_disease: '', notes: '' })
 const editingPatient = ref(null)
 const returnToBookingAfterAdd = ref(false)
@@ -527,7 +527,7 @@ const nextSlotWarning = ref('')
 
 const currentTab = ref('queue')
 const queueView = ref('active')
-const archiveDate = ref(todayKey)
+const archiveDate = ref(getTodayKey())
 const archiveAppointments = ref([])
 const archiveLoading = ref(false)
 
@@ -592,7 +592,7 @@ function openBookingModal(patient) {
     patient_name: patient?.full_name || '',
     patient_phone: patient?.phone || '',
     patient_age: patient?.age || null,
-    date: todayKey,
+    date: getTodayKey(),
     start_time: getNextTimeSlot(),
     end_time: '',
     fee: defaultConsultationFee.value ?? null,
@@ -659,7 +659,7 @@ function openBookingFor(p) {
     patient_name: p.full_name,
     patient_phone: p.phone || '',
     patient_age: p.age || null,
-    date: todayKey,
+    date: getTodayKey(),
     start_time: getNextTimeSlot(),
     end_time: '',
     fee: defaultConsultationFee.value ?? null,
@@ -711,7 +711,7 @@ async function saveBooking() {
     )
     showToast('تم حجز موعد ' + booking.value.patient_name + ' بنجاح')
     showBookingModal.value = false
-    booking.value = { patient_id: '', patient_name: '', patient_phone: '', patient_age: null, date: todayKey, start_time: '', end_time: '', fee: null, notes: '' }
+    booking.value = { patient_id: '', patient_name: '', patient_phone: '', patient_age: null, date: getTodayKey(), start_time: '', end_time: '', fee: null, notes: '' }
     bookingSearch.value = ''
   } catch (e) { showToast('خطأ في الحفظ', 'error') }
   finally { savingBooking.value = false }
@@ -788,7 +788,7 @@ function openPatientChat(deviceId) {
 }
 
 function openChatFromNotif(n) {
-  showNotifDropdown.value = false
+  showNotifPanel.value = false
   window.location.href = `/clinic/${clinicId.value}/secretary/chats`
 }
 
@@ -879,7 +879,7 @@ async function rejectBooking(pr) {
 
 function openSetTimeModal(pr) {
   setTimeTarget.value = pr
-  setTimeDate.value = pr.appointment_date || todayKey
+  setTimeDate.value = pr.appointment_date || getTodayKey()
   setTimeTime.value = pr.start_time || ''
   showSetTimeModal.value = true
 }
@@ -926,7 +926,7 @@ onMounted(async () => {
   await loadDoctorSettings()
 
   unsubs = [
-    onSnapshot(query(collection(db, 'appointments'), where('clinicId', '==', clinicId.value), where('appointment_date', '==', todayKey)), snap => {
+    onSnapshot(query(collection(db, 'appointments'), where('clinicId', '==', clinicId.value), where('appointment_date', '==', getTodayKey())), snap => {
       todayQueue.value = snap.docs.map(d => {
         const a = d.data()
         return {
@@ -934,7 +934,7 @@ onMounted(async () => {
           full_name: a.full_name || '---',
           phone: a.phone || '',
           file_number: a.file_number || '',
-          status: a.status || (a.entered === 1 ? 'arrived' : a.missed === 1 ? 'missed' : 'booked')
+          status: a.status || 'booked'
         }
       }).sort((a, b) => {
         const o = { arrived: 0, booked: 1, completed: 2, missed: 3 }

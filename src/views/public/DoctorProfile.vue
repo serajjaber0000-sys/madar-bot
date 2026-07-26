@@ -4,7 +4,7 @@
     <nav class="dp-nav">
       <div class="dp-nav-inner">
         <button class="dp-back-btn" @click="goBack" aria-label="العودة">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5M12 19l7-7-7-7"/>
           </svg>
         </button>
@@ -35,7 +35,7 @@
       </svg>
       <h2>الطبيب غير موجود</h2>
       <p>الرابط غير صالح أو لم يفعّل الطبيب ملفه العام</p>
-      <router-link to="/directory" class="dp-nf-btn">العودة لدليل الأطباء</router-link>
+      <router-link to="/" class="dp-nf-btn">العودة لدليل الأطباء</router-link>
     </div>
 
     <!-- Main Content -->
@@ -639,7 +639,7 @@
 
       <!-- Sticky Bottom Bar -->
       <div class="dp-bottom-bar">
-        <router-link to="/directory" class="dp-bottom-btn dp-bottom-home">
+        <router-link to="/" class="dp-bottom-btn dp-bottom-home">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <polyline points="9 22 9 12 15 12 15 22"/>
@@ -794,7 +794,7 @@ function openLightbox(idx) {
 }
 
 function goBack() {
-  if (window.history.length > 1) { router.back() } else { router.push('/directory') }
+  if (window.history.length > 1) { router.back() } else { router.push('/') }
 }
 
 function getStarPercentage(star) {
@@ -1116,7 +1116,7 @@ onUnmounted(() => {
   height: 56px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
 }
 .dp-back-btn {
   display: flex;
@@ -1124,29 +1124,23 @@ onUnmounted(() => {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
   backdrop-filter: blur(8px);
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  position: relative;
-  z-index: 2;
 }
-.dp-back-btn:hover { background: rgba(255, 255, 255, 0.3); }
+.dp-back-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateX(-2px); }
 .dp-back-btn:active { background: rgba(255, 255, 255, 0.35); transform: scale(0.95); }
 .dp-nav-title {
-  flex: 1;
-  text-align: center;
   font: 800 0.95rem 'Tajawal', sans-serif;
   color: #fff;
 }
-.dp-nav-spacer { width: 44px; flex-shrink: 0; }
-.dp-nav-spacer { width: 68px; flex-shrink: 0; }
+.dp-nav-spacer { display: none; }
 
 /* ===== SKELETON ===== */
 .dp-skeleton-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }

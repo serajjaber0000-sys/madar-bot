@@ -85,6 +85,22 @@
             <span class="stat-meta">طبيب غير مشترك</span>
           </div>
         </div>
+
+        <div class="stat-card glass glass--teal">
+          <div class="stat-icon-wrap">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="22" height="22">
+              <path d="M10 3.5C5.5 3.5 2 6.5 2 10s3.5 6.5 8 6.5 8-3 8-6.5S14.5 3.5 10 3.5z"/>
+              <path d="M10 3.5v13"/>
+              <path d="M2.5 10h15"/>
+              <ellipse cx="10" cy="10" rx="3.5" ry="6.5"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <span class="stat-label">زيارات الدليل</span>
+            <span class="stat-value">{{ formatNumber(totalVisits) }}</span>
+            <span class="stat-meta">{{ formatNumber(todayVisits) }} زائر اليوم</span>
+          </div>
+        </div>
       </div>
 
       <!-- Revenue Chart + Platform Performance -->
@@ -305,7 +321,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { db } from '@/firebase/config'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import AppLayout from '@/components/AppLayout.vue'
 
 const loading = ref(true)
@@ -314,6 +330,8 @@ const activeSubscriptions = ref(0)
 const totalRevenue = ref(0)
 const totalPatients = ref(0)
 const totalListings = ref(0)
+const totalVisits = ref(0)
+const todayVisits = ref(0)
 const recentClinics = ref([])
 
 const formatNumber = (num) => Number(num).toLocaleString('ar-IQ')
@@ -405,6 +423,15 @@ const fetchData = async () => {
     try {
       const listingsSnap = await getDocs(collection(db, 'directory_listings'))
       totalListings.value = listingsSnap.size
+    } catch {}
+
+    try {
+      const statsSnap = await getDoc(doc(db, 'site_stats', 'directory_visits'))
+      if (statsSnap.exists()) {
+        const sd = statsSnap.data()
+        totalVisits.value = sd.total || 0
+        todayVisits.value = sd.today || 0
+      }
     } catch {}
   } catch (error) {
   } finally {
@@ -565,6 +592,11 @@ onMounted(() => fetchData())
 .glass--purple .stat-icon-wrap {
   background: linear-gradient(135deg, #ede9fe, #c4b5fd);
   color: #7c3aed;
+}
+
+.glass--teal .stat-icon-wrap {
+  background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+  color: #0d9488;
 }
 
 .stat-content {

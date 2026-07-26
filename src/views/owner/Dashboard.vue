@@ -979,10 +979,10 @@ function selectPatient(p) {
 function clearSelection() { selectedPatient.value = null; workspaceMode.value = null; workspaceContent.value = ''; autoOpenedAppointmentId.value = null }
 
 async function markEntered(a) {
-  try { await updateDoc(doc(db, 'appointments', a.id), { entered: 1, status: 'consulting' }); openOptionsId.value = null } catch (e) {}
+  try { await updateDoc(doc(db, 'appointments', a.id), { status: 'arrived' }); openOptionsId.value = null } catch (e) {}
 }
 async function markMissed(a) {
-  try { await updateDoc(doc(db, 'appointments', a.id), { missed: 1, status: 'missed' }); openOptionsId.value = null } catch (e) {}
+  try { await updateDoc(doc(db, 'appointments', a.id), { status: 'missed' }); openOptionsId.value = null } catch (e) {}
 }
 
 async function dischargePatient() {
@@ -1125,7 +1125,7 @@ async function openFullFile(patient) {
     fullFileVisits.value = appts.map(a => ({
       appointment_id: a.id,
       appointment_date: a.appointment_date,
-      status: a.status || (a.entered === 1 ? 'consulting' : a.missed === 1 ? 'missed' : 'booked'),
+      status: a.status || 'booked',
       diagnosis: diagMap[a.id] || '',
       prescription: prescMap[a.id] || '',
       notes: a.notes || '',
@@ -1230,7 +1230,7 @@ async function savePatient() {
 }
 
 const todayQueue = ref([])
-const todayKey = computed(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}` })
+const getTodayKey = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}` }
 const prevStatuses = ref({})
 const autoOpenedAppointmentId = ref(null)
 const auditLogs = ref([])
@@ -1390,10 +1390,10 @@ onMounted(async () => {
   const subs = [
     onSnapshot(query(collection(db, 'patients'), where('clinicId', '==', cid)), snap => { patients.value = snap.docs.map(d => ({ id: d.id, ...d.data() })) }),
     onSnapshot(query(collection(db, 'prescriptions'), where('clinicId', '==', cid)), snap => { prescriptions.value = snap.docs.map(d => ({ id: d.id, ...d.data() })) }),
-    onSnapshot(query(collection(db, 'appointments'), where('clinicId', '==', cid), where('appointment_date', '==', todayKey)), async (snap) => {
+    onSnapshot(query(collection(db, 'appointments'), where('clinicId', '==', cid), where('appointment_date', '==', getTodayKey())), async (snap) => {
       const allList = snap.docs.map(d => {
         const a = d.data()
-        const status = a.status || (a.entered === 1 ? 'arrived' : a.missed === 1 ? 'missed' : 'booked')
+        const status = a.status || 'booked'
         return {
           id: d.id, ...a,
           full_name: a.full_name || '---',

@@ -27,8 +27,8 @@ const mainAuth = getAuth(mainApp)
 const secAuth = getAuth(secApp)
 const db = getFirestore(mainApp)
 
-const BOT_EMAIL = 'bot@madar-admin.io'
-const BOT_PASS = 'MadarBot2026!Secure'
+const BOT_EMAIL = process.env.BOT_EMAIL || 'bot@madar-admin.io'
+const BOT_PASS = process.env.BOT_PASS || 'MadarBot2026!Secure'
 const ADMIN_ID = Number(process.env.SUPER_ADMIN_TELEGRAM_ID)
 
 const bot = new Bot(process.env.BOT_TOKEN)
@@ -334,6 +334,9 @@ bot.callbackQuery(/^c:tg:(.+)$/, async (ctx) => {
   try {
     const snap = await getDoc(doc(db, 'clinics', ctx.match[1]))
     if (!snap.exists()) return
+    if (store[ctx.chat.id]?.role === 'founder' && snap.data().ownerUid !== store[ctx.chat.id].founderId) {
+      return ctx.reply('⛔ هذه العيادة ليست لك.', { reply_markup: menuBtn() })
+    }
     const ns = snap.data().status === 'active' ? 'closed' : 'active'
     await updateDoc(doc(db, 'clinics', ctx.match[1]), { status: ns })
     await edit(ctx, `✅ ${snap.data().name}: <b>${ns === 'active' ? '🟢 نشطة' : '🔴 مغلقة'}</b>`, {
@@ -345,6 +348,14 @@ bot.callbackQuery(/^c:tg:(.+)$/, async (ctx) => {
 bot.callbackQuery(/^c:rm:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (store[ctx.chat.id]?.role === 'founder') {
+    try {
+      const snap = await getDoc(doc(db, 'clinics', ctx.match[1]))
+      if (snap.exists() && snap.data().ownerUid !== store[ctx.chat.id].founderId) {
+        return ctx.reply('⛔ هذه العيادة ليست لك.', { reply_markup: menuBtn() })
+      }
+    } catch {}
+  }
   await edit(ctx, `⚠️ <b>تأكيد الحذف</b>\nهل أنت متأكد؟`, {
     reply_markup: new InlineKeyboard().text('✅ نعم', `c:rok:${ctx.match[1]}`).text('❌ لا', `c:show:${ctx.match[1]}`)
   })
@@ -378,6 +389,14 @@ bot.callbackQuery(/^c:ed:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 })
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   const id = ctx.match[1]
+  if (store[ctx.chat.id]?.role === 'founder') {
+    try {
+      const snap = await getDoc(doc(db, 'clinics', id))
+      if (snap.exists() && snap.data().ownerUid !== store[ctx.chat.id].founderId) {
+        return ctx.reply('⛔ هذه العيادة ليست لك.', { reply_markup: menuBtn() })
+      }
+    } catch {}
+  }
   await edit(ctx, `✏️ <b>تعديل العيادة</b>\n${DIV}`, {
     reply_markup: new InlineKeyboard()
       .text('✏️ الاسم', `ef:name:${id}`).text('👤 الصاحب', `ef:ownerName:${id}`).row()
@@ -959,7 +978,7 @@ bot.callbackQuery(/^dp:setschedule:(.+)$/, async (ctx) => {
   if (!founderOrAdmin(ctx)) return
   const id = ctx.match[1]
   const s = getS(ctx.chat.id)
-  s.step = 'dp_edit_hours'
+  s.step = 'dp_schedule'
   s.data = { editId: id }
   await edit(ctx, `⏰ <b>اكتب وقت الدوام:</b>\n${DIV}\n\nمثال: <code>8:00 - 14:00</code>\n\nاكتب من - الى:`, { reply_markup: new InlineKeyboard().text('❌ إلغاء', `dp:edit:${id}`) })
 })

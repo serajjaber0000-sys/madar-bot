@@ -25,7 +25,7 @@
       </div>
       <transition name="lp-menu">
         <div v-if="mobileOpen" class="lp-mobile-menu">
-          <router-link to="/directory" class="lp-mm-link" @click="mobileOpen = false">
+          <router-link to="/" class="lp-mm-link" @click="mobileOpen = false">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             دليل الأطباء
           </router-link>
@@ -69,7 +69,7 @@
           اقرأ التقييمات، تواصل مباشرة، واحجز موعدك في ثوانٍ
         </p>
         <div class="lp-hero-actions">
-          <router-link to="/directory" class="lp-btn lp-btn-primary-lg">
+          <router-link to="/" class="lp-btn lp-btn-primary-lg">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
             ابدأ البحث الآن
           </router-link>
@@ -193,7 +193,7 @@
           </router-link>
         </div>
         <div class="lp-topdocs-cta">
-          <router-link to="/directory" class="lp-btn lp-btn-primary">
+          <router-link to="/" class="lp-btn lp-btn-primary">
             عرض جميع الأطباء
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </router-link>
@@ -212,7 +212,7 @@
           <div class="lp-cta-inner">
             <h2>ابدأ البحث عن طبيبك الآن</h2>
             <p>آلاف الأطباء في جميع أنحاء العراق بانتظارك. ابحث مجاناً واحجز موعدك مباشرة</p>
-            <router-link to="/directory" class="lp-btn lp-btn-white">
+            <router-link to="/" class="lp-btn lp-btn-white">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
               دخول الدليل
             </router-link>
@@ -242,7 +242,7 @@
           </div>
           <div class="lp-footer-col">
             <h4>روابط سريعة</h4>
-            <router-link to="/directory">دليل الأطباء</router-link>
+            <router-link to="/">دليل الأطباء</router-link>
             <router-link to="/about">من نحن</router-link>
             <router-link to="/contact">تواصل معنا</router-link>
             <router-link to="/bmi">حاسبة الوزن</router-link>

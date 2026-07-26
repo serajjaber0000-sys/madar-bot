@@ -2,7 +2,7 @@
   "name": "مدار — نظام إداري متكامل للعيادات الطبية",
   "short_name": "مدار",
   "description": "مدار — نظام إداري متكامل للعيادات الطبية",
-  "start_url": "/login",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0A5E52",

@@ -140,7 +140,9 @@ export const useAuthStore = defineStore('auth', () => {
               localStorage.setItem('user', JSON.stringify(user.value))
               await doResolve()
             } else {
-              logout()
+              user.value = null
+              userProfile.value = null
+              localStorage.removeItem('user')
               safeResolve()
               return
             }

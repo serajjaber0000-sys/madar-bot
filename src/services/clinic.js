@@ -167,8 +167,6 @@ export const appointmentsRepo = {
       device_id: data.device_id || null,
       status: data.status || 'booked',
       is_new_patient: data.is_new_patient ?? true,
-      entered: 0,
-      missed: 0,
       payment_status: null,
       amount: null,
       consultation_fee: null,
@@ -182,7 +180,7 @@ export const appointmentsRepo = {
     const docRef = await addDoc(collection(db, 'appointments'), {
       clinicId, patient_id: patientId, appointment_date: date,
       start_time: startTime || null, end_time: endTime || null,
-      notes: notes || null, entered: 0, missed: 0,
+      notes: notes || null, status: 'booked',
       payment_status: null, amount: null,
       consultation_fee: consultationFee || null,
       booked_by_name: bookedByName || null,
@@ -198,15 +196,11 @@ export const appointmentsRepo = {
   },
 
   async updateStatus(id, status) {
-    const updates = { status }
-    if (status === 'arrived') { updates.entered = 1; updates.missed = 0 }
-    else if (status === 'missed') { updates.missed = 1; updates.entered = 0 }
-    else if (status === 'booked') { updates.entered = 0; updates.missed = 0 }
-    await updateDoc(doc(db, 'appointments', id), updates)
+    await updateDoc(doc(db, 'appointments', id), { status })
   },
 
   async complete(id, consultationFee) {
-    const updates = { status: 'completed', entered: 1 }
+    const updates = { status: 'completed' }
     if (consultationFee != null) updates.consultation_fee = consultationFee
     await updateDoc(doc(db, 'appointments', id), updates)
   },
@@ -230,14 +224,14 @@ export const appointmentsRepo = {
   },
 
   async markEntered(id, value, consultationFee) {
-    const update = { entered: value ? 1 : 0, missed: 0 }
+    const update = { status: value ? 'arrived' : null }
     if (consultationFee !== undefined) update.consultation_fee = consultationFee
     await updateDoc(doc(db, 'appointments', id), update)
     return { success: true }
   },
 
   async markMissed(id, value) {
-    await updateDoc(doc(db, 'appointments', id), { missed: value ? 1 : 0, entered: 0 })
+    await updateDoc(doc(db, 'appointments', id), { status: value ? 'missed' : null })
     return { success: true }
   },
 
@@ -288,7 +282,7 @@ export const appointmentsRepo = {
     }
     await addDoc(collection(db, 'appointments'), {
       clinicId, patient_id: patientId, appointment_date: todayIso(),
-      entered: 0, missed: 0, payment_status: null, amount: null, notes: null,
+      status: 'booked', payment_status: null, amount: null, notes: null,
       created_at: new Date().toISOString()
     })
     return { success: true, usedExisting }
@@ -538,7 +532,7 @@ export const incomeRepo = {
     return snap.docs.reduce((sum, d) => {
       const dt = d.data()
       if (dt.appointment_date >= startDate && dt.appointment_date < endDate) {
-        if (dt.entered === 1 && dt.consultation_fee) {
+        if (dt.status === 'arrived' && dt.consultation_fee) {
           return sum + (Number(dt.consultation_fee) || 0)
         }
         if (dt.payment_status === 'paid' || dt.payment_status === 'review') {

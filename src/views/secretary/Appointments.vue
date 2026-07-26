@@ -172,7 +172,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(a, i) in queueList" :key="a.id" :class="{ row_entered: a.entered === 1, row_missed: a.missed === 1 }">
+                <tr v-for="(a, i) in queueList" :key="a.id" :class="{ row_entered: a.status === 'arrived', row_missed: a.status === 'missed' }">
                   <td class="col-seq" style="text-align:center">{{ i + 1 }}</td>
                   <td class="cell-name">
                     <div class="queue-name-cell">
@@ -183,8 +183,8 @@
                           {{ to12h(a.start_time) || '' }}{{ a.start_time && a.end_time ? ' - ' : '' }}{{ to12h(a.end_time) || '' }}
                         </span>
                       </div>
-                      <span v-if="a.entered" class="queue-status-stripe entered">دخل</span>
-                      <span v-if="a.missed" class="queue-status-stripe missed">لم يحضر</span>
+                      <span v-if="a.status === 'arrived'" class="queue-status-stripe entered">دخل</span>
+                      <span v-if="a.status === 'missed'" class="queue-status-stripe missed">لم يحضر</span>
                     </div>
                   </td>
                   <td class="cell-muted">{{ a.phone || '---' }}</td>
@@ -193,10 +193,10 @@
                     <span v-else class="patient-type-badge old">سابق</span>
                   </td>
                   <td style="text-align:center">
-                    <input type="checkbox" class="queue-checkbox" :checked="a.entered === 1" @change="handleEntered(a, $event.target.checked)" />
+                    <input type="checkbox" class="queue-checkbox" :checked="a.status === 'arrived'" @change="handleEntered(a, $event.target.checked)" />
                   </td>
                   <td style="text-align:center">
-                    <input type="checkbox" class="queue-checkbox" :checked="a.missed === 1" @change="handleMissed(a, $event.target.checked)" />
+                    <input type="checkbox" class="queue-checkbox" :checked="a.status === 'missed'" @change="handleMissed(a, $event.target.checked)" />
                   </td>
                   <td style="text-align:center">
                     <button class="icon-btn" title="حذف الحجز" @click="confirmDeleteQueue(a)">
@@ -767,18 +767,20 @@ async function confirmConsultationFee() {
 
 async function doMarkEntered(appt, value, consultationFee) {
   try {
-    await appointmentsRepo.markEntered(appt.id, value, consultationFee)
-    appt.entered = value ? 1 : 0
-    if (value) appt.missed = 0
+    const status = value ? 'arrived' : null
+    const updates = { status }
+    if (consultationFee !== null && consultationFee !== undefined) updates.consultation_fee = consultationFee
+    await updateDoc(fsDoc(db, 'appointments', appt.id), updates)
+    appt.status = status
     if (consultationFee !== null && consultationFee !== undefined) appt.consultation_fee = consultationFee
   } catch (e) { console.error('Error marking entered:', e) }
 }
 
 async function handleMissed(appt, checked) {
   try {
-    await appointmentsRepo.markMissed(appt.id, checked)
-    appt.missed = checked ? 1 : 0
-    if (checked) appt.entered = 0
+    const status = checked ? 'missed' : null
+    await updateDoc(fsDoc(db, 'appointments', appt.id), { status })
+    appt.status = status
   } catch (e) { console.error('Error marking missed:', e) }
 }
 

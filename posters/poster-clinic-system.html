@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مدار — نظام إدارة العيادات</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+@page{size:A4 portrait;margin:0}
+body{font-family:'Tajawal',sans-serif;background:#0a0a0a;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:0}
+.p{width:210mm;height:297mm;position:relative;overflow:hidden;background:#06010f}
+
+.base{position:absolute;inset:0;background:linear-gradient(170deg,#06010f 0%,#0f0525 20%,#1a0a3e 45%,#1e1060 65%,#0f0525 85%,#06010f 100%)}
+
+.aurora{position:absolute;inset:0;overflow:hidden}
+.aurora::before{content:'';position:absolute;width:600px;height:300px;background:linear-gradient(90deg,rgba(139,92,246,0.2),rgba(99,102,241,0.12),rgba(168,85,247,0.08));border-radius:50%;filter:blur(80px);top:-60px;left:-100px;transform:rotate(10deg)}
+.aurora::after{content:'';position:absolute;width:450px;height:250px;background:linear-gradient(90deg,rgba(251,191,36,0.06),rgba(245,158,11,0.04));border-radius:50%;filter:blur(80px);bottom:60px;right:-80px;transform:rotate(-5deg)}
+
+.mesh{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,0.015) 1px,transparent 1px);background-size:24px 24px}
+
+.streak{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.15),transparent);transform-origin:left center}
+.st1{width:280px;top:200px;right:60px;transform:rotate(-20deg)}
+.st2{width:220px;top:380px;left:80px;transform:rotate(12deg);opacity:0.4}
+.st3{width:180px;bottom:280px;right:100px;transform:rotate(-8deg);opacity:0.3}
+
+.corner{position:absolute;z-index:10}
+.corner-t{top:16px;left:16px;right:16px;height:1px;background:linear-gradient(90deg,rgba(139,92,246,0.25),transparent 30%,transparent 70%,rgba(139,92,246,0.25))}
+.corner-b{bottom:16px;left:16px;right:16px;height:1px;background:linear-gradient(90deg,rgba(139,92,246,0.12),transparent 30%,transparent 70%,rgba(139,92,246,0.12))}
+.corner-l{top:16px;left:16px;bottom:16px;width:1px;background:linear-gradient(180deg,rgba(139,92,246,0.25),transparent 30%,transparent 70%,rgba(139,92,246,0.12))}
+.corner-r{top:16px;right:16px;bottom:16px;width:1px;background:linear-gradient(180deg,rgba(139,92,246,0.25),transparent 30%,transparent 70%,rgba(139,92,246,0.12))}
+.corner-dot{position:absolute;width:6px;height:6px;border-radius:50%;background:rgba(139,92,246,0.35)}
+.cd-tl{top:13px;left:13px}.cd-tr{top:13px;right:13px}.cd-bl{bottom:13px;left:13px}.cd-br{bottom:13px;right:13px}
+
+.side{position:absolute;right:22px;top:50%;transform:translateY(-50%) rotate(90deg);font-size:9px;font-weight:700;color:rgba(255,255,255,0.025);letter-spacing:5px;text-transform:uppercase;z-index:5;white-space:nowrap}
+
+/* TOP */
+.top{position:relative;z-index:20;padding:44px 52px 0}
+
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.b-logo{width:48px;height:48px;border-radius:14px;object-fit:cover;box-shadow:0 4px 20px rgba(0,0,0,0.5),0 0 0 1px rgba(139,92,246,0.12)}
+.b-name{font-size:22px;font-weight:900;color:rgba(255,255,255,0.9)}
+.b-badge{background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.12);border-radius:6px;padding:4px 12px;font-size:10px;font-weight:800;color:#a78bfa;letter-spacing:1.5px;text-transform:uppercase;margin-left:8px}
+
+.headline{margin-bottom:24px}
+.h1{font-size:54px;font-weight:900;color:#fff;line-height:1.02;letter-spacing:-2px}
+.h1 .v{color:#a78bfa}
+.h1 .y{color:#fbbf24}
+.h2{font-size:15px;font-weight:600;color:rgba(255,255,255,0.18);letter-spacing:3px;text-transform:uppercase;margin-top:10px}
+
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.bar-line{height:3px;border-radius:2px;background:linear-gradient(90deg,#8b5cf6,#6366f1);width:40px}
+.bar-dot{width:5px;height:5px;border-radius:50%;background:#8b5cf6}
+.bar-text{font-size:12px;font-weight:800;color:rgba(255,255,255,0.2);letter-spacing:2px;text-transform:uppercase}
+
+/* Feature grid */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);border-radius:14px;padding:16px 12px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.12),transparent)}
+.card-i{font-size:28px;margin-bottom:6px}
+.card-t{font-size:13px;font-weight:800;color:#fff;margin-bottom:2px}
+.card-d{font-size:10px;font-weight:600;color:rgba(255,255,255,0.18);line-height:1.4}
+
+/* CENTER */
+.center{position:relative;z-index:20;display:flex;align-items:center;justify-content:center;gap:36px;padding:20px 52px}
+
+.qr-outer{position:relative}
+.qr-glow{position:absolute;inset:-18px;background:radial-gradient(circle,rgba(139,92,246,0.08) 0%,transparent 70%);border-radius:50%;pointer-events:none}
+.qr-card{background:rgba(255,255,255,0.95);border-radius:18px;padding:14px;position:relative;z-index:2;box-shadow:0 20px 60px rgba(0,0,0,0.3),0 0 0 1px rgba(139,92,246,0.08)}
+.qr-img{width:118px;height:118px;display:block;border-radius:8px}
+.qr-pin{position:absolute;top:-6px;right:-6px;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:grid;place-items:center;box-shadow:0 4px 12px rgba(139,92,246,0.3)}
+.qr-pin svg{width:16px;height:16px;fill:#fff}
+
+.qr-info{text-align:right}
+.qr-info h3{font-size:20px;font-weight:900;color:#fff;margin-bottom:5px}
+.qr-info p{font-size:11px;font-weight:600;color:rgba(255,255,255,0.25);line-height:1.6}
+
+.steps{display:flex;gap:8px;margin-top:12px}
+.step{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.035);border-radius:10px;padding:7px 12px}
+.step-n{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center;flex-shrink:0}
+.step-t{font-size:10px;font-weight:700;color:rgba(255,255,255,0.3)}
+
+/* BOTTOM */
+.bottom{position:absolute;bottom:0;left:0;right:0;z-index:20;padding:0 52px 0}
+
+.price{display:inline-flex;align-items:center;gap:10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.1);border-radius:10px;padding:8px 18px;margin-bottom:12px}
+.price .now{font-size:14px;font-weight:900;color:#fbbf24}
+.price .old{font-size:12px;font-weight:700;color:rgba(255,255,255,0.15);text-decoration:line-through}
+
+.cta{background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.08);border-radius:14px;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cta h3{font-size:16px;font-weight:900;color:#fff}
+.cta h3 span{color:#a78bfa}
+.cta p{font-size:11px;font-weight:600;color:rgba(255,255,255,0.22)}
+.cta-btn{background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:13px;font-weight:900;padding:10px 22px;border-radius:10px;text-decoration:none;box-shadow:0 6px 24px rgba(139,92,246,0.2);white-space:nowrap}
+
+.foot{display:flex;align-items:center;justify-content:space-between;padding:14px 0;margin-bottom:18px;border-top:1px solid rgba(255,255,255,0.025)}
+.foot-l{display:flex;align-items:center;gap:14px}
+.foot-s{font-size:10px;font-weight:700;color:rgba(255,255,255,0.12);display:flex;align-items:center;gap:5px}
+.foot-r{font-size:11px;font-weight:800;color:rgba(255,255,255,0.06);letter-spacing:1px}
+
+@media print{
+  body{background:none;padding:0}
+  .p{box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="p">
+  <div class="base"></div><div class="aurora"></div><div class="mesh"></div>
+  <div class="streak st1"></div><div class="streak st2"></div><div class="streak st3"></div>
+  <div class="corner corner-t"></div><div class="corner corner-b"></div>
+  <div class="corner corner-l"></div><div class="corner corner-r"></div>
+  <div class="corner-dot cd-tl"></div><div class="corner-dot cd-tr"></div>
+  <div class="corner-dot cd-bl"></div><div class="corner-dot cd-br"></div>
+  <div class="side">MADAR — CLINIC MANAGEMENT SYSTEM</div>
+
+  <div class="top">
+    <div class="brand">
+      <img src="https://asaasedu.com/logo.jpg" alt="" class="b-logo"/>
+      <div class="b-name">مدار</div>
+      <div class="b-badge">نظام إدارة العيادات</div>
+    </div>
+    <div class="headline">
+      <div class="h1">دار عيادتك<span class="v">.</span></div>
+      <div class="h1">بأيدٍ <span class="y">أمان</span><span class="v">.</span></div>
+      <div class="h2">نظام متكامل — من المريض إلى التقرير</div>
+    </div>
+    <div class="bar">
+      <div class="bar-line"></div><div class="bar-dot"></div>
+      <div class="bar-text">حلول ذكية للعيادات العراقية</div>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="card-i">👥</div><div class="card-t">إدارة المرضى</div><div class="card-d">ملفات شاملة مع تاريخ طبي كامل</div></div>
+      <div class="card"><div class="card-i">📅</div><div class="card-t">المواعيد الذكية</div><div class="card-d">حجز وإدارة مع تذكيرات تلقائية</div></div>
+      <div class="card"><div class="card-i">💰</div><div class="card-t">الفواتير</div><div class="card-d">إنشاء فواتير وتتبع مدفوعات</div></div>
+      <div class="card"><div class="card-i">💬</div><div class="card-t">شات المرضى</div><div class="card-d">تواصل مباشر مثل واتساب</div></div>
+      <div class="card"><div class="card-i">📊</div><div class="card-t">التقارير الذكية</div><div class="card-d">تقارير شاملة لأداء عيادتك</div></div>
+      <div class="card"><div class="card-i">📋</div><div class="card-t">السجل الطبي</div><div class="card-d">توثيق كل وصفة وتشخيص</div></div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="qr-outer">
+      <div class="qr-glow"></div>
+      <div class="qr-card">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://asaasedu.com/login&color=7c3aed&bgcolor=ffffff&margin=8&format=png" alt="QR" class="qr-img"/>
+        <div class="qr-pin"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div>
+      </div>
+    </div>
+    <div class="qr-info">
+      <h3>ابدأ في 3 خطوات</h3>
+      <p>سجّل عيادتك مجاناً — 14 يوم تجربة بدون بطاقة</p>
+      <div class="steps">
+        <div class="step"><div class="step-n">1</div><div class="step-t">امسح الكود</div></div>
+        <div class="step"><div class="step-n">2</div><div class="step-t">سجّل بياناتك</div></div>
+        <div class="step"><div class="step-n">3</div><div class="step-t">ابدأ فوراً</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="price"><span class="now">✨ تجربة مجانية 14 يوم</span><span class="old">50,000 د.ع/شهر</span></div>
+    <div class="cta">
+      <div><h3>عيادتك تستاهل <span>أفضل نظام</span></h3><p>asaasedu.com/login</p></div>
+      <a href="https://asaasedu.com/login" class="cta-btn">سجّل الآن ←</a>
+    </div>
+    <div class="foot">
+      <div class="foot-l"><span class="foot-s">📸 @medar.health</span><span class="foot-s">🌐 asaasedu.com</span></div>
+      <span class="foot-r">MADAR © 2026</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

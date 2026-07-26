@@ -495,7 +495,7 @@ function getDayName(dateStr) { return dayNames[new Date(dateStr).getDay()] }
 
 function calcIncome(appointment) {
   const dt = appointment
-  if (dt.entered === 1 && dt.consultation_fee) return Number(dt.consultation_fee) || 0
+  if (dt.status === 'arrived' && dt.consultation_fee) return Number(dt.consultation_fee) || 0
   if (dt.payment_status === 'paid' || dt.payment_status === 'review') return Number(dt.amount) || 0
   return 0
 }

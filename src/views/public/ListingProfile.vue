@@ -1,14 +1,13 @@
 <template>
-  <div class="dp">
+  <div class="dp" :style="{ '--accent': accentColor, '--accent-light': accentLight, '--accent-dark': accentDark }">
     <!-- Navigation -->
     <nav class="dp-nav">
       <div class="dp-nav-inner">
         <button class="dp-back-btn" @click="goBack" aria-label="العودة">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5M12 19l7-7-7-7"/>
           </svg>
         </button>
-        <span class="dp-nav-title">{{ facilityLabel }}</span>
       </div>
     </nav>
 
@@ -36,13 +35,13 @@
       </svg>
       <h2>{{ facilityLabel }} غير موجود</h2>
       <p>الرابط غير صالح أو تم حذف هذا التسجيل</p>
-      <router-link to="/directory" class="dp-nf-btn">العودة للدليل</router-link>
+      <router-link to="/" class="dp-nf-btn">العودة للدليل</router-link>
     </div>
 
     <!-- Main Content -->
     <template v-else>
       <!-- Hero Section -->
-      <section class="dp-hero" :style="{ '--accent': accentColor }">
+      <section class="dp-hero">
         <div class="dp-hero-bg">
           <div class="dp-hero-orb dp-hero-orb--1"></div>
           <div class="dp-hero-orb dp-hero-orb--2"></div>
@@ -167,9 +166,9 @@
       <div v-show="activeTab === 'about'" class="dp-content" role="tabpanel">
         <div class="dp-content-inner">
           <!-- Bio -->
-          <div class="dp-card dp-card-highlight dp-card-full">
+            <div class="dp-card dp-card-highlight dp-card-full">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#e6f5f3;color:#0d9488">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="12" cy="7" r="4"/>
@@ -183,7 +182,7 @@
           <!-- Certifications -->
           <div class="dp-card dp-card-full" v-if="profile.certifications && profile.certifications.length">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef3c7;color:#d69e1f">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
@@ -202,7 +201,7 @@
           <!-- Languages -->
           <div class="dp-card dp-card-full" v-if="profile.languages && profile.languages.length">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#ede9fe;color:#8b5cf6">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="2" y1="12" x2="22" y2="12"/>
@@ -219,7 +218,7 @@
           <!-- Conditions -->
           <div class="dp-card dp-card-full" v-if="profile.conditions_treated && profile.conditions_treated.length">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef2f2;color:#e11d48">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                 </svg>
@@ -234,7 +233,7 @@
           <!-- Clinic Info -->
           <div class="dp-card dp-card-full">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#e6f5f3;color:#0d9488">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                   <polyline points="9 22 9 12 15 12 15 22"/>
@@ -269,7 +268,7 @@
           <!-- Insurance & Payment -->
           <div class="dp-card dp-card-full" v-if="(profile.insurance_companies && profile.insurance_companies.length) || (profile.payment_methods && profile.payment_methods.length)">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef3c7;color:#d69e1f">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                 </svg>
@@ -293,7 +292,7 @@
           <!-- Pricing -->
           <div class="dp-card dp-card-full" v-if="profile.consultation_fee || profile.review_fee">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef3c7;color:#d69e1f">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>
@@ -317,7 +316,7 @@
           <!-- Offers -->
           <div class="dp-card dp-card-full" v-if="profile.offers && profile.offers.length">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef2f2;color:#e11d48">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                   <line x1="7" y1="7" x2="7.01" y2="7"/>
@@ -342,7 +341,7 @@
         <div class="dp-content-inner">
           <div class="dp-card dp-card-full" v-if="profile.is_24h">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#dcfce7;color:#16a34a">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <h3>ساعات العمل</h3>
@@ -354,7 +353,7 @@
           </div>
           <div class="dp-card dp-card-full" v-else-if="profile.weekly_schedule && profile.weekly_schedule.length">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#e6f5f3;color:#0d9488">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="4" width="18" height="18" rx="2"/>
                   <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
@@ -379,7 +378,7 @@
           </div>
           <div class="dp-card dp-card-full" v-else-if="profile.clinic_open_time">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#e6f5f3;color:#0d9488">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <h3>ساعات العمل</h3>
@@ -397,7 +396,7 @@
         <div class="dp-content-inner">
           <div class="dp-card dp-card-full" v-if="profile.phone || profile.phone2">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#e6f5f3;color:#0d9488">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
@@ -433,7 +432,7 @@
           <!-- Address + Map -->
           <div class="dp-card dp-card-full" v-if="profile.address || profile.map_url">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#fef2f2;color:#ef4444">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
@@ -454,7 +453,7 @@
           <!-- Website -->
           <div class="dp-card dp-card-full" v-if="profile.website">
             <div class="dp-card-header">
-              <div class="dp-card-icon" style="background:#ede9fe;color:#8b5cf6">
+              <div class="dp-card-icon dp-card-icon--accent">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="2" y1="12" x2="22" y2="12"/>
@@ -493,7 +492,7 @@
               <h3>أنت صاحب {{ facilityLabel }} وتريد الانضمام؟</h3>
               <p>سجّل الآن واستفد من الحجز الإلكتروني وإدارة المرضى</p>
               <a href="https://t.me/Madar_system" target="_blank" class="dp-cta-btn">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="#0d9488"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.48-.428-.013-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                <svg viewBox="0 0 24 24" width="18" height="18" :fill="accentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.492-1.302.48-.428-.013-1.252-.242-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
                 سجّل عبر تليجرام
               </a>
             </div>
@@ -503,7 +502,7 @@
 
       <!-- Bottom Bar -->
       <div class="dp-bottom-bar">
-        <router-link to="/directory" class="dp-bottom-btn">
+        <router-link to="/" class="dp-bottom-btn">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
           </svg>
@@ -563,11 +562,11 @@ let viewCounted = false
 const listingId = computed(() => route.params.listingId)
 
 const typeColors = {
-  doctor: '#1150c9',
-  pharmacy: '#d69e1f',
-  hospital: '#ef4444',
-  lab: '#8b5cf6',
-  physio: '#0d9488'
+  doctor: { main: '#1150c9', light: '#eff4ff', dark: '#0b3d91', bg: '#1150c9' },
+  pharmacy: { main: '#d69e1f', light: '#fef9e7', dark: '#92400e', bg: '#d69e1f' },
+  hospital: { main: '#dc2626', light: '#fef2f2', dark: '#991b1b', bg: '#dc2626' },
+  lab: { main: '#7c3aed', light: '#ede9fe', dark: '#5b21b6', bg: '#7c3aed' },
+  physio: { main: '#0d9488', light: '#ccfbf1', dark: '#065f46', bg: '#0d9488' }
 }
 const typeLabels = { doctor: 'طبيب', pharmacy: 'صيدلية', hospital: 'مستشفى', lab: 'مختبر', physio: 'علاج طبيعي' }
 const typeLabelsPlural = { doctor: 'الأطباء', pharmacy: 'الصيدليات', hospital: 'المستشفيات', lab: 'المختبرات', physio: 'مراكز العلاج الطبيعي' }
@@ -579,7 +578,7 @@ const facilityLabelPlural = computed(() => typeLabelsPlural[ft.value] || 'الأ
 const defaultSpec = computed(() => defaultSpecs[ft.value] || 'طبيب عام')
 
 const accentColor = computed(() => {
-  if (typeColors[ft.value]) return typeColors[ft.value]
+  if (typeColors[ft.value]) return typeColors[ft.value].main
   const spec = profile.value?.specialty || ''
   const colors = { 'باطنية': '#4f46e5', 'قلب': '#e11d48', 'عظام': '#059669', 'أطفال': '#0284c7', 'جلدية': '#7c3aed', 'نساء': '#db2777', 'عيون': '#0891b2', 'أسنان': '#0d9488', 'أنف وأذن': '#6366f1', 'مسالك بولية': '#0ea5e9', 'عصبية': '#8b5cf6', 'عام': '#475569', 'طب عام': '#475569' }
   const lower = spec.toLowerCase().trim()
@@ -587,6 +586,8 @@ const accentColor = computed(() => {
   let h = 0; for (let i = 0; i < spec.length; i++) h = spec.charCodeAt(i) + ((h << 5) - h)
   return ['#1150c9', '#0d9488', '#d69e1f', '#8b5cf6', '#ec4899', '#ef4444'][Math.abs(h) % 6]
 })
+const accentLight = computed(() => typeColors[ft.value]?.light || '#f0f9ff')
+const accentDark = computed(() => typeColors[ft.value]?.dark || '#0b3d91')
 
 const initials = computed(() => {
   const name = profile.value?.doctor_name || ''
@@ -662,7 +663,7 @@ function openLightbox(idx) {
 }
 
 function goBack() {
-  if (window.history.length > 1) { router.back() } else { router.push('/directory') }
+  if (window.history.length > 1) { router.back() } else { router.push('/') }
 }
 
 function incrementView() {
@@ -701,16 +702,17 @@ onUnmounted(() => { if (unsub) unsub() })
 </script>
 
 <style scoped>
-.dp{font-family:inherit;direction:rtl;color:#1e293b;background:#f4f7fa;min-height:100vh;min-height:100dvh;overflow-x:hidden;padding-bottom:80px;-webkit-font-smoothing:antialiased;-webkit-overflow-scrolling:touch}
+.dp{font-family:inherit;direction:rtl;color:#1e293b;background:#f4f7fa;min-height:100vh;min-height:100dvh;overflow-x:hidden;padding-bottom:80px;-webkit-font-smoothing:antialiased;-webkit-overflow-scrolling:touch;--accent:#1150c9;--accent-light:#eff4ff;--accent-dark:#0b3d91}
 .dp *,.dp *::before,.dp *::after{margin:0;padding:0;box-sizing:border-box}
 .dp button{font-family:inherit}
 
 /* NAV */
-.dp-nav{position:sticky;top:0;z-index:200;background:#fff;box-shadow:0 1px 8px rgba(0,0,0,0.06)}
-.dp-nav-inner{max-width:600px;margin:0 auto;padding:0 16px;height:52px;display:flex;align-items:center;gap:12px}
-.dp-back-btn{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#f1f5f9;color:#475569;border:none;cursor:pointer;transition:all .2s;flex-shrink:0}
-.dp-back-btn:active{background:#e2e8f0}
-.dp-nav-title{font:700 0.85rem 'Tajawal',sans-serif;color:#475569}
+.dp-nav{position:sticky;top:0;z-index:200;background:linear-gradient(120deg,var(--accent),var(--accent-dark));box-shadow:0 2px 12px color-mix(in srgb,var(--accent) 40%,transparent)}
+.dp-nav-inner{max-width:600px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:center}
+.dp-back-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,0.2);color:#fff;border:1.5px solid rgba(255,255,255,0.25);cursor:pointer;transition:all .2s;flex-shrink:0;backdrop-filter:blur(8px)}
+.dp-back-btn:hover{background:rgba(255,255,255,0.3)}
+.dp-back-btn:active{background:rgba(255,255,255,0.35);transform:scale(0.95)}
+.dp-nav-title{display:none}
 
 /* SKELETON */
 .dp-skeleton-wrap{max-width:600px;margin:0 auto;padding:24px 16px}
@@ -794,7 +796,7 @@ onUnmounted(() => { if (unsub) unsub() })
 .dp-tabs-wrap{position:sticky;top:52px;z-index:100;background:#fff;border-bottom:1px solid #e8ecf1}
 .dp-tabs{max-width:600px;margin:0 auto;display:flex;padding:0 16px;gap:0}
 .dp-tab{flex:1;padding:14px 8px;font:700 0.82rem 'Tajawal',sans-serif;color:#94a3b8;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:all .2s;text-align:center}
-.dp-tab.active{color:#0d9488;border-bottom-color:#0d9488}
+.dp-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* CONTENT */
 .dp-content{max-width:600px;margin:0 auto;padding:0 12px}
@@ -803,9 +805,10 @@ onUnmounted(() => { if (unsub) unsub() })
 /* CARDS */
 .dp-card{background:#fff;border-radius:16px;border:1px solid #e8ecf1;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.03)}
 .dp-card-full{width:100%}
-.dp-card-highlight{border-color:#ccfbf1;background:linear-gradient(135deg,#f0fdfa 0%,#fff 100%)}
+.dp-card-highlight{border-color:color-mix(in srgb,var(--accent) 30%,#e8ecf1);background:linear-gradient(135deg,var(--accent-light) 0%,#fff 100%)}
 .dp-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .dp-card-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.dp-card-icon--accent{background:var(--accent-light);color:var(--accent)}
 .dp-card-header h3{font:800 0.88rem/1.2 'Tajawal',sans-serif;color:#0f172a}
 .dp-card-body-text{font-size:0.84rem;color:#475569;line-height:1.85}
 
@@ -820,14 +823,14 @@ onUnmounted(() => { if (unsub) unsub() })
 
 /* CONDITIONS */
 .dp-conditions-grid{display:flex;flex-wrap:wrap;gap:8px}
-.dp-condition-tag{padding:6px 14px;border-radius:20px;background:#fef2f2;color:#e11d48;font:600 0.78rem 'Tajawal',sans-serif}
+.dp-condition-tag{padding:6px 14px;border-radius:20px;background:var(--accent-light);color:var(--accent);font:600 0.78rem 'Tajawal',sans-serif}
 
 /* INFO GRID */
 .dp-info-grid{display:flex;flex-direction:column;gap:10px}
 .dp-info-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9}
 .dp-info-label{font-size:0.72rem;color:#94a3b8;font-weight:600}
 .dp-info-val{font:700 0.85rem/1.2 'Tajawal',sans-serif;color:#0f172a;text-align:left}
-.dp-info-val a{color:#0d9488;text-decoration:none}
+.dp-info-val a{color:var(--accent);text-decoration:none}
 
 /* INSURANCE */
 .dp-ins-section{margin-top:10px}
@@ -846,12 +849,12 @@ onUnmounted(() => { if (unsub) unsub() })
 /* SCHEDULE */
 .dp-schedule-table{display:flex;flex-direction:column;gap:4px}
 .dp-schedule-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #f1f5f9}
-.dp-schedule-row--active{border-color:#ccfbf1;background:#f0fdfa}
+.dp-schedule-row--active{border-color:color-mix(in srgb,var(--accent) 30%,transparent);background:var(--accent-light)}
 .dp-schedule-day{display:flex;align-items:center;gap:8px;font:600 0.82rem 'Tajawal',sans-serif;color:#334155}
 .dp-schedule-dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex-shrink:0}
 .dp-dot-green{background:#22c55e}
 .dp-schedule-status{display:flex;align-items:center;gap:8px}
-.dp-schedule-time-badge{font:700 0.75rem 'Tajawal',sans-serif;color:#0d9488;background:#e6f5f3;padding:4px 10px;border-radius:8px}
+.dp-schedule-time-badge{font:700 0.75rem 'Tajawal',sans-serif;color:var(--accent);background:var(--accent-light);padding:4px 10px;border-radius:8px}
 .dp-schedule-off-badge{font:700 0.75rem 'Tajawal',sans-serif;color:#ef4444;background:#fef2f2;padding:4px 10px;border-radius:8px}
 .dp-schedule-fallback{font-size:0.88rem;color:#334155;font-weight:600;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9}
 
@@ -868,8 +871,8 @@ onUnmounted(() => { if (unsub) unsub() })
 
 /* ADDRESS */
 .dp-address-text{display:flex;align-items:flex-start;gap:8px;font-size:0.82rem;color:#334155;line-height:1.7;margin-bottom:10px;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9}
-.dp-map-dir-btn{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1.5px solid #e2e8f0;text-decoration:none;color:#0d9488;font:700 0.82rem 'Tajawal',sans-serif;transition:all .2s}
-.dp-map-dir-btn:active{border-color:#0d9488;background:#f0fdf9}
+.dp-map-dir-btn{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1.5px solid #e2e8f0;text-decoration:none;color:var(--accent);font:700 0.82rem 'Tajawal',sans-serif;transition:all .2s}
+.dp-map-dir-btn:active{border-color:var(--accent);background:var(--accent-light)}
 
 /* WEBSITE */
 .dp-website-link{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1.5px solid #e2e8f0;text-decoration:none;color:#6366f1;font:700 0.82rem 'Tajawal',sans-serif;transition:all .2s;direction:ltr;text-align:left}
@@ -881,18 +884,18 @@ onUnmounted(() => { if (unsub) unsub() })
 
 /* CTA */
 .dp-cta-card{position:relative;border-radius:20px;overflow:hidden}
-.dp-cta-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0d9488,#0f766e)}
+.dp-cta-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--accent),var(--accent-dark))}
 .dp-cta-inner{position:relative;z-index:1;padding:28px 20px;text-align:center}
 .dp-cta-icon-wrap{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);display:inline-grid;place-items:center;margin-bottom:12px}
 .dp-cta-inner h3{font:800 0.92rem/1.3 'Tajawal',sans-serif;color:#fff;margin-bottom:6px}
 .dp-cta-inner p{font-size:0.78rem;color:rgba(255,255,255,0.75);margin-bottom:16px;line-height:1.6}
-.dp-cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 28px;border-radius:12px;background:#fff;color:#0d9488;font:800 0.88rem 'Tajawal',sans-serif;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
+.dp-cta-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 28px;border-radius:12px;background:#fff;color:var(--accent);font:800 0.88rem 'Tajawal',sans-serif;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(0,0,0,0.1)}
 .dp-cta-btn:active{transform:scale(0.97)}
 
 /* BOTTOM BAR */
 .dp-bottom-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:#fff;border-top:1px solid #e8ecf1;box-shadow:0 -2px 12px rgba(0,0,0,0.04);display:flex;justify-content:space-around;padding:6px 0 env(safe-area-inset-bottom,8px);max-width:600px;margin:0 auto}
 .dp-bottom-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;text-decoration:none;color:#94a3b8;font:600 0.62rem 'Tajawal',sans-serif;transition:color .2s;border-radius:10px;min-width:64px}
-.dp-bottom-btn.router-link-exact-active{color:#0d9488}
+.dp-bottom-btn.router-link-exact-active{color:var(--accent)}
 
 /* FOOTER */
 .dp-footer{border-top:1px solid #e8ecf1;background:#fff;margin-top:20px;padding-bottom:80px}

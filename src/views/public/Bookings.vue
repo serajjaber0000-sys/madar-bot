@@ -1,7 +1,7 @@
 <template>
   <div class="bk-page">
     <nav class="bk-nav">
-      <router-link to="/directory" class="bk-nav-back">
+      <router-link to="/" class="bk-nav-back">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </router-link>
       <h1 class="bk-nav-title">حجوزاتي</h1>
@@ -71,7 +71,7 @@
         <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#cbd5e1" stroke-width="1.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <h3>لا توجد حجوزات بعد</h3>
         <p>ابحث عن طبيب واحجز موعدك الآن</p>
-        <router-link to="/directory" class="bk-empty-link">تصفح الأطباء</router-link>
+        <router-link to="/" class="bk-empty-link">تصفح الأطباء</router-link>
       </div>
 
       <div v-else class="bk-list">

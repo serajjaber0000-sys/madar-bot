@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بوستات مدار</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700;800;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Tajawal', sans-serif; background: #0f172a; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+  h1 { color: #fff; font-size: 32px; font-weight: 900; margin-bottom: 8px; }
+  .sub { color: #94a3b8; font-size: 16px; font-weight: 600; margin-bottom: 40px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1100px; width: 100%; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+  .card-color { height: 6px; }
+  .card-body { padding: 20px; text-align: center; }
+  .card-icon { font-size: 40px; margin-bottom: 10px; }
+  .card-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .card-desc { font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 16px; line-height: 1.5; }
+  .card-btn { display: inline-block; background: linear-gradient(135deg, #0d9488, #14b8a6); color: #fff; font-size: 14px; font-weight: 800; padding: 8px 20px; border-radius: 10px; text-decoration: none; }
+  .note { color: #64748b; font-size: 12px; margin-top: 30px; font-weight: 600; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <h1>بوستات مدار للطباعة</h1>
+  <div class="sub">اضغط على البطاقة لفتح البوست — ثم Ctrl+P للطباعة</div>
+  
+  <div class="grid">
+    <a class="card" href="poster-clinic-directory.html" target="_blank">
+      <div class="card-color" style="background:linear-gradient(90deg,#0d9488,#2dd4bf)"></div>
+      <div class="card-body">
+        <div class="card-icon">📱</div>
+        <div class="card-title">دليل الأطباء</div>
+        <div class="card-desc">للمرضى — امسح الكود وابحث عن طبيبك</div>
+        <div class="card-btn">فتح البوست</div>
+      </div>
+    </a>
+    
+    <a class="card" href="poster-clinic-system.html" target="_blank">
+      <div class="card-color" style="background:linear-gradient(90deg,#4338ca,#818cf8)"></div>
+      <div class="card-body">
+        <div class="card-icon">🏥</div>
+        <div class="card-title">نظام إدارة العيادات</div>
+        <div class="card-desc">للأطباء — سجّل عيادتك وجرّب النظام مجاناً</div>
+        <div class="card-btn">فتح البوست</div>
+      </div>
+    </a>
+    
+    <a class="card" href="poster-general-marketing.html" target="_blank">
+      <div class="card-color" style="background:linear-gradient(90deg,#d69e1f,#f59e0b)"></div>
+      <div class="card-body">
+        <div class="card-icon">🌟</div>
+        <div class="card-title">عام — تسويق شامل</div>
+        <div class="card-desc">للجميع — مدار منصة العراق الطبية</div>
+        <div class="card-btn">فتح البوست</div>
+      </div>
+    </a>
+  </div>
+  
+  <div class="note">للطباعة: افتح البوست → Ctrl+P → اختر A4 → اطبع</div>
+</body>
+</html>

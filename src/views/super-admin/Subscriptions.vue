@@ -28,7 +28,7 @@
             <div class="stat-icon emerald">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
-            <div class="stat-info"><span class="stat-value">${{ estimatedRevenue.toLocaleString() }}</span><span class="stat-label">{{ 'الإيرادات المقدرة' }}</span></div>
+            <div class="stat-info"><span class="stat-value">د.ع{{ estimatedRevenue.toLocaleString() }}</span><span class="stat-label">{{ 'الإيرادات المقدرة' }}</span></div>
           </div>
           <div class="stat-card glass">
             <div class="stat-icon amber">
@@ -45,7 +45,7 @@
               <div class="plan-badge" v-if="plan.featured">{{ 'الأكثر شيوعاً' }}</div>
               <h3 class="plan-name">{{ plan.name }}</h3>
               <div class="plan-price">
-                <span class="price-value">${{ plan.price }}</span>
+                <span class="price-value">د.ع{{ plan.price }}</span>
                 <span class="price-period">/{{ 'شهر' }}</span>
               </div>
               <ul class="plan-features">
@@ -121,7 +121,7 @@
         <div class="plan-select-list">
           <button v-for="p in plans" :key="p.key" class="plan-option" :class="{ selected: selectedPlan === p.key }" @click="selectedPlan = p.key">
             <span class="plan-opt-name">{{ p.name }}</span>
-            <span class="plan-opt-price">${{ p.price }}/mo</span>
+            <span class="plan-opt-price">د.ع{{ p.price }}/mo</span>
           </button>
         </div>
         <template #footer>

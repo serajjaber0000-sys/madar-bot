@@ -59,7 +59,7 @@
 
       <!-- QUEUE LIST -->
       <div v-else class="queue">
-        <div v-for="(a, i) in filteredList" :key="a.id" class="q-card" :class="{ entered: a.entered === 1, missed: a.missed === 1 }">
+        <div v-for="(a, i) in filteredList" :key="a.id" class="q-card" :class="{ entered: a.status === 'arrived', missed: a.status === 'missed' }">
           <div class="q-num">{{ i + 1 }}</div>
           <div class="q-info">
             <div class="q-name-row">
@@ -85,11 +85,11 @@
 
           <!-- ACTIONS -->
           <div class="q-actions">
-            <label class="q-flag" :class="{ active: a.entered === 1 }" @click.prevent="toggleEntered(a)">
+            <label class="q-flag" :class="{ active: a.status === 'arrived' }" @click.prevent="toggleEntered(a)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               دخل
             </label>
-            <label class="q-flag q-miss" :class="{ active: a.missed === 1 }" @click.prevent="toggleMissed(a)">
+            <label class="q-flag q-miss" :class="{ active: a.status === 'missed' }" @click.prevent="toggleMissed(a)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               لم يحضر
             </label>
@@ -148,7 +148,7 @@ const showDeleteConfirm = ref(false)
 const deleteTarget = ref(null)
 
 const todayStr = computed(() => new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
-const _n = new Date(); const todayKey = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`
+const getTodayKey = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}` }
 
 const filteredList = computed(() => {
   let list = [...queueList.value]
@@ -164,26 +164,24 @@ const filteredList = computed(() => {
 
 const newCount = computed(() => queueList.value.filter(a => a.is_new_patient).length)
 const oldCount = computed(() => queueList.value.filter(a => !a.is_new_patient).length)
-const enteredCount = computed(() => queueList.value.filter(a => a.entered === 1).length)
+const enteredCount = computed(() => queueList.value.filter(a => a.status === 'arrived').length)
 
 async function toggleEntered(a) {
-  if (a.entered === 1) {
-    a.entered = 0
+  if (a.status === 'arrived') {
+    a.status = null
   } else {
-    a.entered = 1
-    a.missed = 0
+    a.status = 'arrived'
   }
-  try { await updateDoc(doc(db, 'appointments', a.id), { entered: a.entered, missed: a.missed }) } catch (e) {}
+  try { await updateDoc(doc(db, 'appointments', a.id), { status: a.status }) } catch (e) {}
 }
 
 async function toggleMissed(a) {
-  if (a.missed === 1) {
-    a.missed = 0
+  if (a.status === 'missed') {
+    a.status = null
   } else {
-    a.missed = 1
-    a.entered = 0
+    a.status = 'missed'
   }
-  try { await updateDoc(doc(db, 'appointments', a.id), { missed: a.missed, entered: a.entered }) } catch (e) {}
+  try { await updateDoc(doc(db, 'appointments', a.id), { status: a.status }) } catch (e) {}
 }
 
 function confirmDelete(a) {
@@ -208,7 +206,7 @@ onMounted(async () => {
   if (!clinicId.value) return
 
   unsub = onSnapshot(
-    query(collection(db, 'appointments'), where('clinicId', '==', clinicId.value), where('appointment_date', '==', todayKey)),
+    query(collection(db, 'appointments'), where('clinicId', '==', clinicId.value), where('appointment_date', '==', getTodayKey())),
     (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       queueList.value = list.map(a => ({
@@ -216,7 +214,10 @@ onMounted(async () => {
         full_name: a.full_name || '---',
         phone: a.phone || '',
         is_new_patient: a.is_new_patient ?? true
-      })).sort((a, b) => (a.entered || 0) - (b.entered || 0) || (a.missed || 0) - (b.missed || 0) || (a.id || '').localeCompare(b.id || ''))
+      })).sort((a, b) => {
+        const order = { arrived: 0, missed: 2 }
+        return (order[a.status] ?? 1) - (order[b.status] ?? 1) || (a.id || '').localeCompare(b.id || '')
+      })
       loading.value = false
     }
   )

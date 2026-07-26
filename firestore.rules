@@ -248,21 +248,21 @@ service cloud.firestore {
     match /patient_notifications/{id} {
       allow read: if true;
       allow create: if request.resource.data.device_id != null && request.resource.data.device_id != '' && request.resource.data.clinicId != null;
-      allow update: if true;
-      allow delete: if true;
+      allow update: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
+      allow delete: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
     }
 
     match /patient_chat_rooms/{roomId} {
       allow read: if true;
       allow create: if request.resource.data.clinicId != null && request.resource.data.device_id != null && request.resource.data.patient_name != null;
-      allow update: if true;
+      allow update: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
       allow delete: if isSignedIn() && isSuperAdmin();
     }
 
     match /patient_chat_messages/{msgId} {
       allow read: if true;
       allow create: if request.resource.data.roomId != null && request.resource.data.clinicId != null && request.resource.data.sender != null && request.resource.data.text != null;
-      allow update: if true;
+      allow update: if isSignedIn() && (isSuperAdmin() || resource.data.clinicId == myClinicId());
       allow delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'secretary');
     }
 
@@ -276,6 +276,11 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    match /site_stats/{id} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
     match /platform_notifications/{id} {
       allow read: if isSuperAdmin();
       allow write: if isSuperAdmin();
@@ -285,21 +290,21 @@ service cloud.firestore {
       allow get: if true;
       allow list: if true;
       allow create: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
-      allow update: if (isSignedIn() && (isSuperAdmin() || myRole() == 'owner')) || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['view_count']);
-      allow delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
+      allow update: if (isSignedIn() && (isSuperAdmin() || (myRole() == 'owner' && resource.data.created_by == request.auth.uid))) || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['view_count']);
+      allow delete: if isSignedIn() && (isSuperAdmin() || (myRole() == 'owner' && resource.data.created_by == request.auth.uid));
     }
 
     match /reviews/{id} {
       allow get: if true;
       allow list: if true;
       allow create: if request.resource.data.clinicId != null && (request.resource.data.device_fingerprint != null || request.auth != null);
-      allow update: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
-      allow delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
+      allow update: if isSignedIn() && (isSuperAdmin() || (myRole() == 'owner' && resource.data.clinicId == myClinicId()));
+      allow delete: if isSignedIn() && (isSuperAdmin() || (myRole() == 'owner' && resource.data.clinicId == myClinicId()));
     }
 
     match /review_comments/{id} {
       allow read: if true;
-      allow create: if true;
+      allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (isSuperAdmin() || myRole() == 'owner');
     }
 

@@ -1,7 +1,7 @@
 <template>
   <div class="fb-page">
     <nav class="fb-nav">
-      <router-link to="/directory" class="fb-nav-back">
+      <router-link to="/" class="fb-nav-back">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </router-link>
       <h1 class="fb-nav-title">المفضلة</h1>
@@ -13,7 +13,7 @@
         <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#cbd5e1" stroke-width="1.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <h3>لم تضف أي طبيب للمفضلة بعد</h3>
         <p>تصفح الأطباء وأضف المفضلين لديك</p>
-        <router-link to="/directory" class="fb-empty-link">تصفح الأطباء</router-link>
+        <router-link to="/" class="fb-empty-link">تصفح الأطباء</router-link>
       </div>
 
       <div v-else class="fb-cards">

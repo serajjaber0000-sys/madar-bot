@@ -1,7 +1,7 @@
 const SITE_TITLE = 'مدار — دليل الأطباء والعيادات الطبية في العراق'
 const routes = [
-  { path: '/', component: () => import('../views/public/SplashWelcome.vue'), meta: { public: true, title: SITE_TITLE } },
-  { path: '/directory', component: () => import('../views/public/DoctorsDirectory.vue'), meta: { public: true, title: 'دليل الأطباء — مدار' } },
+  { path: '/', component: () => import('../views/public/DoctorsDirectory.vue'), meta: { public: true, title: 'دليل الأطباء — مدار' } },
+  { path: '/directory', redirect: '/' },
   { path: '/doctor/:clinicId', component: () => import('../views/public/DoctorProfile.vue'), meta: { public: true, title: SITE_TITLE } },
   { path: '/listing/:listingId', component: () => import('../views/public/ListingProfile.vue'), meta: { public: true, title: SITE_TITLE } },
   { path: '/about', component: () => import('../views/public/AboutUs.vue'), meta: { public: true, title: 'من نحن — مدار' } },
@@ -14,6 +14,7 @@ const routes = [
   { path: '/onboarding', component: () => import('../views/auth/Onboarding.vue'), meta: { guest: true, title: 'مرحباً بك — مدار' } },
   { path: '/maintenance', component: () => import('../views/MaintenancePage.vue'), meta: { public: true, title: 'صيانة — مدار' } },
   { path: '/patient/:clinicId/:patientId', component: () => import('../views/shared/PatientPublic.vue'), meta: { public: true, title: SITE_TITLE } },
+  { path: '/promoter', component: () => import('../views/public/PromoterPage.vue'), meta: { public: true, title: 'شرح النظام للمروجين — مدار' } },
 
   // Super Admin
   { path: '/super-admin', redirect: '/super-admin/dashboard', meta: { requiresAuth: true, role: 'super_admin' } },

@@ -92,7 +92,7 @@ import { useAuthStore } from '@/stores/auth'
 import { db } from '@/firebase/config'
 import {
   collection, query, where, addDoc, doc, setDoc, onSnapshot,
-  updateDoc, increment
+  updateDoc, increment, writeBatch, getDocs
 } from 'firebase/firestore'
 import { playNotifSound } from '@/utils/time'
 
@@ -203,13 +203,15 @@ async function markAsRead(roomId) {
     where('roomId', '==', roomId),
     where('clinicId', '==', clinicId.value)
   )
-  const snap = await import('firebase/firestore').then(m => m.getDocs(q))
+  const snap = await getDocs(q)
+  const batch = writeBatch(db)
   for (const d of snap.docs) {
     const m = d.data()
     if (m.sender === 'patient' && !m.read) {
-      try { await updateDoc(doc(db, 'patient_chat_messages', d.id), { read: true }) } catch {}
+      batch.update(doc(db, 'patient_chat_messages', d.id), { read: true })
     }
   }
+  await batch.commit()
 }
 
 function openRoom(r) {

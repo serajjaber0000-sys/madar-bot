@@ -42,18 +42,6 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
 
-        <a href="mailto:support@madar.iq" class="contact-card email">
-          <div class="contact-card-icon">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </div>
-          <div class="contact-card-info">
-            <h3>البريد الإلكتروني</h3>
-            <p>أرسل استفسارك أو ملاحظاتك</p>
-            <span class="contact-card-num">support@madar.iq</span>
-          </div>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#cbd5e1" stroke-width="2.5"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-
         <div class="contact-hours">
           <h3>ساعات الدعم</h3>
           <div class="contact-hours-row"><span>السبت — الخميس</span><strong>9:00 ص — 5:00 م</strong></div>
@@ -97,7 +85,6 @@
 .contact-card-icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;flex-shrink:0}
 .contact-card.wa .contact-card-icon{background:#25d366}
 .contact-card.tg .contact-card-icon{background:#0088cc}
-.contact-card.email .contact-card-icon{background:#0d9488}
 .contact-card-info{flex:1;min-width:0}
 .contact-card-info h3{font-size:.95rem;font-weight:800;margin-bottom:2px}
 .contact-card-info p{font-size:.78rem;color:#94a3b8}

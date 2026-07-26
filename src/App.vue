@@ -17,7 +17,7 @@ const route = useRoute()
 const isPublicPage = computed(() => {
   const path = route.path
   if (path.startsWith('/doctor/') || path.startsWith('/listing/')) return false
-  return (path === '/directory' || path === '/about' || path === '/contact' || path === '/bmi' || path === '/favorites' || path === '/bookings')
+  return (path === '/' || path === '/about' || path === '/contact' || path === '/bmi' || path === '/favorites' || path === '/bookings')
 })
 
 let unsubForeground = null
