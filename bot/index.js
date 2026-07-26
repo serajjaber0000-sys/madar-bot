@@ -522,6 +522,7 @@ bot.callbackQuery('dp:skipphoto', async (ctx) => {
 })
 
 bot.callbackQuery('dp:list', async (ctx) => {
+  console.log('dp:list triggered by', ctx.from?.id)
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
@@ -539,7 +540,7 @@ bot.callbackQuery('dp:list', async (ctx) => {
     })
     kb.text('➕ إضافة طبيب', 'dp:new').row().text('◀️ رجوع', 'back')
     await edit(ctx, msg, { reply_markup: kb })
-  } catch (e) { console.error('dp:list:', e.message) }
+  } catch (e) { console.error('dp:list:', e.message); await ctx.reply(`❌ خطأ: ${e.message}`).catch(() => {}) }
 })
 
 bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
