@@ -229,8 +229,8 @@ bot.callbackQuery('open:web', async (ctx) => {
 // CLINIC LIST
 // ═══════════════════════════════════════
 bot.callbackQuery('c:list', async (ctx) => {
-  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return ctx.answerCallbackQuery({ text: '⛔', cacheTime: 0 }) }
   await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
   try {
     let snap
     if (store[ctx.chat.id]?.role === 'founder') {
@@ -1058,8 +1058,9 @@ async function saveDoctorProfile(ctx, s) {
     if (d.facility_type === 'lab') payload.is_lab = true
     if (d.facility_type === 'physio') payload.is_physio = true
 
-    const ref = await addDoc(collection(db, 'doctor_profiles'), payload)
-    await updateDoc(doc(db, 'doctor_profiles', ref.id), { clinicId: ref.id })
+    const newRef = doc(collection(db, 'doctor_profiles'))
+    payload.clinicId = newRef.id
+    await setDoc(newRef, payload)
 
     clearS(ctx.chat.id)
     const ft = FACILITY_TYPES[d.facility_type] || '🩺'
@@ -1073,7 +1074,7 @@ async function saveDoctorProfile(ctx, s) {
       `🏛️ ${loc}\n` +
       `📱 ${d.phone1 || '-'}\n` +
       `⏰ ${sched}\n\n` +
-      `🔗 عرض في الدليل:\n<code>asaasedu.com/doctor/${ref.id}</code>`,
+      `🔗 عرض في الدليل:\n<code>asaasedu.com/doctor/${newRef.id}</code>`,
       { parse_mode: 'HTML', reply_markup: mainKb(store[ctx.chat.id]?.role || 'admin') }
     )
   } catch (e) {
