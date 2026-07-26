@@ -237,6 +237,7 @@ const visibleCount = ref(20)
 const slides = shallowRef([])
 const sliderIndex = ref(0)
 const sliderPaused = ref(false)
+const reviewData = ref([])
 let sliderTimer = null
 let touchStartX = 0
 let unsubDoctors = null
