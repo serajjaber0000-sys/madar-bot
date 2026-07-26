@@ -169,13 +169,15 @@
           <div class="tb-card-center">
             <div class="tb-card-top">
               <h3 class="tb-card-name">
-                د. {{ doc.doctor_name || 'طبيب' }}
+                <template v-if="!doc.facility_type || doc.facility_type === 'doctor'">د. {{ doc.doctor_name || 'طبيب' }}</template>
+                <template v-else>{{ doc.doctor_name }}</template>
                 <svg v-if="doc.verified" class="tb-card-verified" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#0d9488" stroke="#fff" stroke-width="1.5" /><path d="M7.5 12.5l3 3 6-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
               </h3>
-              <span v-if="doc.is_directory_listing" class="tb-card-badge-listing">غير مشترك</span>
+              <span v-if="doc.is_24h" class="tb-card-badge-24h">24 ساعة</span>
+              <span v-else-if="doc.is_directory_listing" class="tb-card-badge-listing">غير مشترك</span>
               <span v-else class="tb-card-dot" :class="isAvailableNow(doc) ? 'avail' : 'closed'" :title="isAvailableNow(doc) ? 'متاح الآن' : 'مغلق حالياً'"></span>
             </div>
-            <span class="tb-card-spec" :style="{ color: getSpecialtyColor(doc.specialty) }">{{ doc.specialty || 'طبيب عام' }}</span>
+            <span class="tb-card-spec" :style="{ color: getSpecialtyColor(doc.specialty) }">{{ doc.specialty || (doc.facility_type === 'pharmacy' ? 'صيدلية' : doc.facility_type === 'hospital' ? 'مستشفى' : doc.facility_type === 'lab' ? 'مختبر' : doc.facility_type === 'physio' ? 'علاج طبيعي' : 'طبيب عام') }}</span>
             <div class="tb-card-bottom">
               <span v-if="doc.governorate || doc.area" class="tb-card-location">
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -257,11 +259,12 @@ const allDoctors = computed(() => {
 
 const categoryList = computed(() => {
   return allDoctors.value.filter(d => {
-    if (activeCategory.value === 'pharmacy') return !!d.is_pharmacy
-    if (activeCategory.value === 'lab') return !!d.is_lab
-    if (activeCategory.value === 'hospital') return !!d.is_hospital
-    if (activeCategory.value === 'physio') return !!d.is_physio
-    return !d.is_lab && !d.is_hospital && !d.is_pharmacy && !d.is_physio
+    const ft = d.facility_type
+    if (activeCategory.value === 'pharmacy') return !!d.is_pharmacy || ft === 'pharmacy'
+    if (activeCategory.value === 'lab') return !!d.is_lab || ft === 'lab'
+    if (activeCategory.value === 'hospital') return !!d.is_hospital || ft === 'hospital'
+    if (activeCategory.value === 'physio') return !!d.is_physio || ft === 'physio'
+    return !d.is_lab && !d.is_hospital && !d.is_pharmacy && !d.is_physio && ft !== 'pharmacy' && ft !== 'lab' && ft !== 'hospital' && ft !== 'physio'
   })
 })
 
@@ -270,7 +273,6 @@ const areas = computed(() => { const set = new Set(); categoryList.value.forEach
 const featuredDoctors = computed(() => categoryList.value.filter(d => d.rating_count > 0 && d.rating_avg > 0).sort((a, b) => (b.rating_avg || 0) - (a.rating_avg || 0) || (b.rating_count || 0) - (a.rating_count || 0)).slice(0, 12))
 const openNow24h = computed(() => {
   return allDoctors.value.filter(d => {
-    if (d.is_lab || d.is_hospital || d.is_pharmacy || d.is_physio) return false
     if (d.is_24h) return true
     if (d.weekly_schedule && d.weekly_schedule.length) {
       return d.weekly_schedule.every(day => {
@@ -544,6 +546,7 @@ onUnmounted(() => {
 
 .tb-card-listing{border-right:3px solid #d69e1f}
 .tb-card-badge-listing{font-size:0.6rem;font-weight:800;background:linear-gradient(135deg,#d69e1f,#b45309);color:#fff;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.tb-card-badge-24h{font-size:0.6rem;font-weight:800;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:2px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 
 .tb-load-more{text-align:center;padding:22px 0}
 .tb-load-more-btn{padding:12px 40px;border-radius:12px;border:2px solid #0d9488;background:#fff;color:#0d9488;font-weight:800;font-size:0.88rem;cursor:pointer;transition:all 0.25s}

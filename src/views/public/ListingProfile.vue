@@ -26,9 +26,9 @@
         <circle cx="12" cy="12" r="10"/>
         <path d="M8 15s1.5 2 4 2 4-2 4-2" stroke-linecap="round"/>
       </svg>
-      <h2>الطبيب غير موجود</h2>
+      <h2>السجل غير موجود</h2>
       <p>الرابط غير صالح أو تم حذف هذا التسجيل</p>
-      <router-link to="/directory" class="dp-nf-btn">العودة لدليل الأطباء</router-link>
+      <router-link to="/directory" class="dp-nf-btn">العودة للدليل</router-link>
     </div>
 
     <template v-else>
@@ -41,7 +41,7 @@
           <div class="lp-hero-card">
             <div class="lp-hero-badge">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              طبيب غير مشترك في مدار
+              {{ facilityBadgeText }}
             </div>
             <div class="lp-hero-top">
               <div class="lp-avatar" :style="{ background: profile.photoUrl ? 'none' : accentColor }">
@@ -51,7 +51,7 @@
               <div class="lp-hero-info">
                 <span class="lp-hero-spec" :style="{ color: accentColor }">{{ profile.specialty || 'طبيب عام' }}</span>
                 <h1 class="lp-hero-name">
-                  د. {{ profile.doctor_name || 'طبيب' }}
+                  {{ heroNamePrefix }}{{ profile.doctor_name }}
                   <span v-if="profile.verified" class="lp-verified-badge">
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
                       <circle cx="12" cy="12" r="12" fill="#0d9488"/>
@@ -84,7 +84,7 @@
 
       <div class="lp-body">
         <div class="lp-section" v-if="profile.doctor_bio">
-          <h3 class="lp-section-title">نبذة عن الطبيب</h3>
+          <h3 class="lp-section-title">{{ profile.facility_type === 'doctor' ? 'نبذة عن الطبيب' : 'نبذة' }}</h3>
           <p class="lp-bio-text">{{ profile.doctor_bio }}</p>
         </div>
 
@@ -110,12 +110,24 @@
           </div>
         </div>
 
-        <div class="lp-section" v-if="profile.clinic_open_time || profile.clinic_close_time">
+        <div class="lp-section" v-if="profile.is_24h || profile.clinic_open_time || profile.clinic_close_time">
           <h3 class="lp-section-title">مواعيد العمل</h3>
-          <div class="lp-schedule-row">
+          <div v-if="profile.is_24h" class="lp-schedule-row" style="color:#16a34a">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            مفتوح 24 ساعة
+          </div>
+          <div v-else class="lp-schedule-row">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#0d9488" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span>{{ profile.clinic_open_time }} — {{ profile.clinic_close_time }}</span>
           </div>
+        </div>
+
+        <div class="lp-section" v-if="profile.map_url">
+          <h3 class="lp-section-title">الموقع على الخريطة</h3>
+          <a :href="profile.map_url" target="_blank" rel="noopener" class="lp-contact-card" style="text-decoration:none">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0d9488" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div><span class="lp-contact-label">فتح على الخريطة</span><span class="lp-contact-value">عرض الموقع</span></div>
+          </a>
         </div>
 
         <div class="lp-subscribe-cta">
@@ -166,6 +178,17 @@ const initials = computed(() => {
 const whatsappNumber = computed(() => {
   const num = profile.value?.whatsapp || profile.value?.phone || ''
   return num.replace(/[^0-9]/g, '')
+})
+
+const facilityBadgeText = computed(() => {
+  const t = profile.value?.facility_type || 'doctor'
+  const labels = { doctor: 'طبيب غير مشترك في مدار', pharmacy: 'صيدلية', hospital: 'مستشفى', lab: 'مختبر', physio: 'مركز علاج طبيعي' }
+  return labels[t] || 'طبيب غير مشترك في مدار'
+})
+
+const heroNamePrefix = computed(() => {
+  const t = profile.value?.facility_type || 'doctor'
+  return t === 'doctor' ? 'د. ' : ''
 })
 
 onMounted(() => {

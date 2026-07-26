@@ -957,15 +957,20 @@ export const directoryListingsRepo = {
 
   async add(data) {
     const ref = await addDoc(collection(db, this._collection), {
+      facility_type: data.facility_type || 'doctor',
       doctor_name: data.doctor_name || '',
       specialty: data.specialty || '',
       governorate: data.governorate || '',
       area: data.area || '',
       phone: data.phone || '',
+      phone2: data.phone2 || '',
       whatsapp: data.whatsapp || '',
+      website: data.website || '',
       photoUrl: data.photoUrl || '',
       address: data.address || '',
+      map_url: data.map_url || '',
       doctor_bio: data.doctor_bio || '',
+      is_24h: data.is_24h || false,
       clinic_open_time: data.clinic_open_time || '',
       clinic_close_time: data.clinic_close_time || '',
       view_count: 0,
