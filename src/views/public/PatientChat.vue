@@ -69,7 +69,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { db } from '@/firebase/config'
 import {
   collection, query, where, addDoc, doc, setDoc, onSnapshot,
-  updateDoc
+  updateDoc, increment
 } from 'firebase/firestore'
 
 const router = useRouter()
@@ -156,6 +156,10 @@ async function send() {
       device_id: deviceId,
       patient_name: patientName.value,
       staff_online: false,
+      last_msg: text,
+      last_msg_time: new Date().toISOString(),
+      last_sender: 'patient',
+      unread_count: increment(1),
       created_at: new Date().toISOString()
     }, { merge: true })
 
@@ -180,6 +184,9 @@ async function markAsRead() {
   const unread = messages.value.filter(m => m.sender === 'staff' && !m.read)
   for (const m of unread) {
     try { await updateDoc(doc(db, 'patient_chat_messages', m.id), { read: true }) } catch {}
+  }
+  if (unread.length > 0) {
+    try { await setDoc(doc(db, 'patient_chat_rooms', getRoomId()), { unread_from_staff: 0 }, { merge: true }) } catch {}
   }
 }
 

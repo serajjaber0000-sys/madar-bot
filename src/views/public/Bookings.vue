@@ -149,7 +149,6 @@ let toastTimer = null
 
 const unreadChatCount = ref(0)
 let unsubChatRooms = null
-let unsubChatMsgs = null
 
 function showToast(type, title, msg) {
   toast.value = { show: true, type, title, msg }
@@ -228,25 +227,15 @@ async function calculatePositions(list) {
 
 function listenUnreadChat(deviceId) {
   if (unsubChatRooms) unsubChatRooms()
-  if (unsubChatMsgs) unsubChatMsgs()
 
   unsubChatRooms = onSnapshot(
     query(collection(db, 'patient_chat_rooms'), where('device_id', '==', deviceId)),
     (roomSnap) => {
-      const roomIds = roomSnap.docs.map(d => d.id)
-      if (roomIds.length === 0) { unreadChatCount.value = 0; return }
-
-      if (unsubChatMsgs) unsubChatMsgs()
-      unsubChatMsgs = onSnapshot(
-        query(collection(db, 'patient_chat_messages'), where('roomId', 'in', roomIds.slice(0, 10))),
-        (msgSnap) => {
-          const deviceIdNow = getDeviceId()
-          unreadChatCount.value = msgSnap.docs.filter(d => {
-            const m = d.data()
-            return m.sender === 'staff' && m.device_id === deviceIdNow && !m.read
-          }).length
-        }, () => { unreadChatCount.value = 0 }
-      )
+      let total = 0
+      roomSnap.docs.forEach(d => {
+        total += d.data().unread_from_staff || 0
+      })
+      unreadChatCount.value = total
     }, () => { unreadChatCount.value = 0 }
   )
 }
@@ -306,7 +295,6 @@ onUnmounted(() => {
   if (unsubBookings) unsubBookings()
   if (unsubNotifications) unsubNotifications()
   if (unsubChatRooms) unsubChatRooms()
-  if (unsubChatMsgs) unsubChatMsgs()
   if (timerInterval) clearInterval(timerInterval)
   clearTimeout(toastTimer)
 })

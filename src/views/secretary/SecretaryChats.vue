@@ -86,13 +86,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { db } from '@/firebase/config'
 import {
-  collection, query, where, addDoc, doc, onSnapshot,
-  orderBy, limit, updateDoc
+  collection, query, where, addDoc, doc, setDoc, onSnapshot,
+  updateDoc, increment
 } from 'firebase/firestore'
 import { playNotifSound } from '@/utils/time'
 
@@ -111,8 +111,7 @@ const sidebarOpen = ref(false)
 
 let unsubRooms = null
 let unsubChat = null
-let unsubMsgsInner = null
-let lastTotalUnread = 0
+let lastRoomUnread = 0
 
 const activeRoomName = computed(() => {
   const r = rooms.value.find(r => r.roomId === activeRoom.value)
@@ -170,17 +169,27 @@ async function send() {
   if (!text || !activeRoom.value) return
   newMsg.value = ''
 
+  const room = rooms.value.find(r => r.roomId === activeRoom.value)
+
   try {
     await addDoc(collection(db, 'patient_chat_messages'), {
       roomId: activeRoom.value,
       clinicId: clinicId.value,
-      device_id: rooms.value.find(r => r.roomId === activeRoom.value)?.device_id || '',
+      device_id: room?.device_id || '',
       sender: 'staff',
       sender_name: staffName.value,
       text,
       timestamp: new Date().toISOString(),
       read: false
     })
+
+    await setDoc(doc(db, 'patient_chat_rooms', activeRoom.value), {
+      last_msg: text,
+      last_msg_time: new Date().toISOString(),
+      last_sender: 'staff',
+      unread_from_staff: increment(1)
+    }, { merge: true })
+
     await scroll()
   } catch (err) {
     newMsg.value = text
@@ -188,10 +197,17 @@ async function send() {
   }
 }
 
-async function markAsRead() {
-  const unread = chatMessages.value.filter(m => m.sender === 'patient' && !m.read)
-  for (const m of unread) {
-    try { await updateDoc(doc(db, 'patient_chat_messages', m.id), { read: true }) } catch {}
+async function markAsRead(roomId) {
+  const q = query(
+    collection(db, 'patient_chat_messages'),
+    where('roomId', '==', roomId)
+  )
+  const snap = await import('firebase/firestore').then(m => m.getDocs(q))
+  for (const d of snap.docs) {
+    const m = d.data()
+    if (m.sender === 'patient' && !m.read) {
+      try { await updateDoc(doc(db, 'patient_chat_messages', d.id), { read: true }) } catch {}
+    }
   }
 }
 
@@ -199,6 +215,10 @@ function openRoom(r) {
   activeRoom.value = r.roomId
   sidebarOpen.value = false
   listenChat(r.roomId)
+  if (r.unread > 0) {
+    markAsRead(r.roomId)
+    setDoc(doc(db, 'patient_chat_rooms', r.roomId), { unread_count: 0 }, { merge: true }).catch(() => {})
+  }
 }
 
 function listenChat(roomId) {
@@ -206,14 +226,12 @@ function listenChat(roomId) {
   chatLoading.value = true
   const q = query(
     collection(db, 'patient_chat_messages'),
-    where('roomId', '==', roomId),
-    limit(500)
+    where('roomId', '==', roomId)
   )
   unsubChat = onSnapshot(q, (snap) => {
     chatMessages.value = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''))
     chatLoading.value = false
     scroll()
-    markAsRead()
   }, () => { chatLoading.value = false })
 }
 
@@ -223,53 +241,26 @@ onMounted(() => {
   unsubRooms = onSnapshot(
     query(collection(db, 'patient_chat_rooms'), where('clinicId', '==', clinicId.value)),
     (snap) => {
-      const roomMap = {}
-      snap.docs.forEach(d => {
-        const data = d.data()
-        roomMap[d.id] = { id: d.id, ...data }
-      })
-
-      if (unsubMsgsInner) unsubMsgsInner()
-      const q2 = query(
-        collection(db, 'patient_chat_messages'),
-        where('clinicId', '==', clinicId.value)
-      )
-      unsubMsgsInner = onSnapshot(q2, (msgSnap) => {
-        const roomLatest = {}
-        const roomUnread = {}
-        msgSnap.docs.forEach(d => {
-          const m = d.data()
-          const rid = m.roomId
-          if (!roomLatest[rid] || (m.timestamp || '') > (roomLatest[rid].timestamp || '')) {
-            roomLatest[rid] = { text: m.text, timestamp: m.timestamp, sender: m.sender }
-          }
-          if (m.sender === 'patient' && !m.read) {
-            roomUnread[rid] = (roomUnread[rid] || 0) + 1
-          }
-        })
-
-        const totalUnread = Object.values(roomUnread).reduce((s, n) => s + n, 0)
-        if (lastTotalUnread > 0 && totalUnread > lastTotalUnread) {
-          playNotifSound('chat')
+      const result = snap.docs.map(d => {
+        const r = d.data()
+        return {
+          roomId: d.id,
+          patient_name: r.patient_name || 'مريض',
+          device_id: r.device_id || '',
+          lastMsg: r.last_msg || '',
+          lastTime: r.last_msg_time || r.created_at || '',
+          unread: r.unread_count || 0,
+          created_at: r.created_at || ''
         }
-        lastTotalUnread = totalUnread
+      }).sort((a, b) => (b.lastTime || '').localeCompare(a.lastTime || ''))
 
-        const result = Object.keys(roomMap).map(rid => {
-          const r = roomMap[rid]
-          const latest = roomLatest[rid]
-          return {
-            roomId: rid,
-            patient_name: r.patient_name || 'مريض',
-            device_id: r.device_id || '',
-            lastMsg: latest?.text || '',
-            lastTime: latest?.timestamp || '',
-            unread: roomUnread[rid] || 0,
-            created_at: r.created_at || ''
-          }
-        }).sort((a, b) => (b.lastTime || b.created_at || '').localeCompare(a.lastTime || a.created_at || ''))
+      const totalUnread = result.reduce((s, r) => s + r.unread, 0)
+      if (lastRoomUnread > 0 && totalUnread > lastRoomUnread) {
+        playNotifSound('chat')
+      }
+      lastRoomUnread = totalUnread
 
-        rooms.value = result
-      }, () => {})
+      rooms.value = result
     },
     () => {}
   )
@@ -277,7 +268,6 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (unsubRooms) unsubRooms()
-  if (unsubMsgsInner) unsubMsgsInner()
   if (unsubChat) unsubChat()
 })
 </script>

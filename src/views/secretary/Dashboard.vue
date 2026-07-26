@@ -953,43 +953,35 @@ onMounted(async () => {
   ]
 
   unsubChatRooms = onSnapshot(query(collection(db, 'patient_chat_rooms'), where('clinicId', '==', clinicId.value)), roomSnap => {
-    const rooms = {}
-    roomSnap.docs.forEach(d => { rooms[d.id] = { id: d.id, ...d.data() } })
-    const roomIds = Object.keys(rooms)
-    if (roomIds.length === 0) { unreadChatCount.value = 0; lastChatCount = 0; chatNotifications.value = []; return }
-    const unreadUnsub = onSnapshot(query(collection(db, 'patient_chat_messages'), where('roomId', 'in', roomIds.slice(0, 10))), msgSnap => {
-      const unreadDocs = msgSnap.docs.filter(d => { const m = d.data(); return m.sender === 'patient' && !m.read })
-      const newCount = unreadDocs.length
-      if (lastChatCount > 0 && newCount > lastChatCount) {
-        playNotifSound('chat')
-        const latest = unreadDocs.pop()
-        const roomData = latest ? rooms[latest.data().roomId] : null
-        const patientName = roomData?.patient_name || 'مريض'
-        showToast('💬 رسالة جديدة من ' + patientName)
-      }
-      lastChatCount = newCount
-      unreadChatCount.value = newCount
+    const allRooms = {}
+    roomSnap.docs.forEach(d => { allRooms[d.id] = { id: d.id, ...d.data() } })
 
-      const chatNotifs = []
-      const seenRooms = new Set()
-      for (const d of unreadDocs.reverse()) {
-        const m = d.data()
-        if (seenRooms.has(m.roomId)) continue
-        seenRooms.add(m.roomId)
-        const room = rooms[m.roomId]
+    let totalUnread = 0
+    const chatNotifs = []
+    for (const [rid, r] of Object.entries(allRooms)) {
+      const uc = r.unread_count || 0
+      if (uc > 0) {
+        totalUnread += uc
         chatNotifs.push({
-          id: 'chat-' + d.id,
+          id: 'chat-' + rid,
           title: '💬 محادثة جديدة',
-          message: (room?.patient_name || 'مريض') + ': ' + (m.text || '').slice(0, 60),
+          message: (r.patient_name || 'مريض') + ' — ' + uc + ' رسالة جديدة',
           read: false,
-          roomId: m.roomId,
+          roomId: rid,
           type: 'chat'
         })
       }
-      chatNotifications.value = chatNotifs
-    }, () => { unreadChatCount.value = 0; chatNotifications.value = [] })
-    unsubs.push(unreadUnsub)
-  }, () => {})
+    }
+
+    if (lastChatCount > 0 && totalUnread > lastChatCount) {
+      playNotifSound('chat')
+      const latestRoom = chatNotifs[0]
+      showToast('💬 رسالة جديدة من ' + (latestRoom?.message || 'مريض'))
+    }
+    lastChatCount = totalUnread
+    unreadChatCount.value = totalUnread
+    chatNotifications.value = chatNotifs
+  }, () => { unreadChatCount.value = 0; chatNotifications.value = [] })
 })
 onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); if (unsubChatRooms) unsubChatRooms(); clearTimeout(searchTimeout); clearTimeout(bookingTimeout); if (timerInterval) clearInterval(timerInterval) })
 </script>

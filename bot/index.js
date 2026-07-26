@@ -729,10 +729,11 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
 bot.callbackQuery('dp:new', async (ctx) => {
   await ctx.answerCallbackQuery({ cacheTime: 0 })
   if (!founderOrAdmin(ctx)) { await getRole(ctx); if (!founderOrAdmin(ctx)) return }
-  const s = getS(ctx.chat.id); s.step = 'dp_photo'; s.data = {}
-  await edit(ctx, `🩺 <b>إضافة منشأة للدليل</b>\n${DIV}\n\n<b>1/13:</b> 📸 صورة المنشأة\n\nارسل صورة أو اضغط التخطي:`, {
-    reply_markup: new InlineKeyboard().text('⏭️ تخطي', 'dp:skipphoto').row().text('❌ إلغاء', 'back')
-  })
+  const s = getS(ctx.chat.id); s.step = 'dp_type'; s.data = {}
+  const kb = new InlineKeyboard()
+  for (const [key, label] of Object.entries(FACILITY_TYPES)) { kb.text(label, `dpt:${key}`).row() }
+  kb.text('❌ إلغاء', 'back')
+  await edit(ctx, `🩺 <b>إضافة منشأة للدليل</b>\n${DIV}\n\n<b>1/?</b> نوع المنشأة:`, { parse_mode: 'HTML', reply_markup: kb })
 })
 
 bot.callbackQuery(/^dp:edit:(.+)$/, async (ctx) => {
@@ -964,24 +965,33 @@ bot.on('message:text', async (ctx) => {
   try {
     // ── DOCTOR PROFILE WIZARD ──
 
-    if (s.step === 'dp_name') { s.data.doctor_name = text; s.step = 'dp_spec'
-      const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
-      return ctx.reply('🩺 <b>3/13</b> التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    if (s.step === 'dp_name') {
+      s.data.doctor_name = text
+      if (s.data.facility_type === 'doctor') {
+        s.step = 'dp_spec'
+        const rows = []; for (let i = 0; i < SPECS.length; i += 3) rows.push(SPECS.slice(i, i + 3))
+        return ctx.reply('🩺 اختر التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      } else {
+        s.step = 'dp_subtype'
+        const subtypes = { pharmacy: ['صيدلية عامة', 'صيدلية مستشفى'], hospital: ['مستشفى حكومي', 'مستشفى خاص', 'عيادة'], lab: ['مختبر حكومي', 'مختبر خاص'], physio: ['مركز علاج طبيعي', 'عيادة علاج طبيعي'] }
+        const options = subtypes[s.data.facility_type] || ['أخرى']
+        const kb = new InlineKeyboard()
+        options.forEach(opt => kb.text(opt, `dp:sub:${opt}`).row())
+        kb.text('أخرى', 'dp:sub:أخرى').row()
+        kb.text('❌ إلغاء', 'back')
+        return ctx.reply('🏷️ نوع المنشأة الفرعي:', { parse_mode: 'HTML', reply_markup: kb })
+      }
     }
     if (s.step === 'dp_spec') {
       if (text === 'أخرى') { s.step = 'dp_spec_custom'; return ctx.reply('✏️ اكتب التخصص يدوياً:', { reply_markup: { remove_keyboard: true } }) }
       if (!SPECS.includes(text)) return ctx.reply('❌ اختر من القائمة')
-      s.data.specialty = text; s.step = 'dp_type'
-      const kb = new InlineKeyboard()
-      for (const [key, label] of Object.entries(FACILITY_TYPES)) { kb.text(label, `dpt:${key}`).row() }
-      kb.text('❌ إلغاء', 'back')
-      return ctx.reply('🏢 <b>4/13</b> نوع المنشأة:', { parse_mode: 'HTML', reply_markup: kb })
+      s.data.specialty = text; s.step = 'dp_gov'
+      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+      return ctx.reply('🏛️ اختر المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
-    if (s.step === 'dp_spec_custom') { s.data.specialty = text; s.step = 'dp_type'
-      const kb = new InlineKeyboard()
-      for (const [key, label] of Object.entries(FACILITY_TYPES)) { kb.text(label, `dpt:${key}`).row() }
-      kb.text('❌ إلغاء', 'back')
-      return ctx.reply('🏢 <b>4/13</b> نوع المنشأة:', { parse_mode: 'HTML', reply_markup: kb })
+    if (s.step === 'dp_spec_custom') { s.data.specialty = text; s.step = 'dp_gov'
+      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+      return ctx.reply('🏛️ اختر المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
 
     if (s.step === 'dp_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
@@ -1135,9 +1145,21 @@ bot.callbackQuery(/^dpt:([^:]+)$/, async (ctx) => {
   const s = getS(ctx.chat.id)
   if (s.step !== 'dp_type') return
   s.data.facility_type = type
+  s.step = 'dp_photo'
+  await edit(ctx, `✅ النوع: <b>${FACILITY_TYPES[type]}</b>\n\n📸 ارسل صورة المنشأة أو اضغط التخطي:`, { parse_mode: 'HTML', reply_markup: new InlineKeyboard().text('⏭️ تخطي', 'dp:skipphoto').row().text('❌ إلغاء', 'back') })
+})
+
+bot.callbackQuery(/^dp:sub:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery({ cacheTime: 0 })
+  if (!founderOrAdmin(ctx)) return
+  const s = getS(ctx.chat.id)
+  if (s.step !== 'dp_subtype') return
+  const subType = ctx.match[1]
+  s.data.subtype = subType === 'أخرى' ? '' : subType
+  s.data.specialty = s.data.subtype || s.data.facility_type
   s.step = 'dp_gov'
   const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
-  await edit(ctx, `✅ النوع: ${FACILITY_TYPES[type]}\n\n<b>5/13</b> 🏛️ المحافظة:`, { parse_mode: 'HTML' })
+  await edit(ctx, `✅ ${subType}\n\n🏛️ اختر المحافظة:`, { parse_mode: 'HTML' })
   await ctx.reply('🏛️ اختر المحافظة:', { reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
 })
 
@@ -1200,6 +1222,7 @@ async function saveDoctorProfile(ctx, s) {
     if (d.facility_type === 'physio') payload.is_physio = true
 
     const newRef = doc(collection(db, 'doctor_profiles'))
+    payload.clinicId = newRef.id
     await setDoc(newRef, payload)
 
     clearS(ctx.chat.id)
@@ -1209,12 +1232,12 @@ async function saveDoctorProfile(ctx, s) {
 
     await ctx.reply(
       `✅ <b>تمت الإضافة بنجاح!</b>\n${DIV2}\n\n` +
-      `${ft} <b>د. ${d.doctor_name}</b>\n` +
+      `${ft} <b>${d.doctor_name}</b>\n` +
       `🩺 ${d.specialty || '-'}\n` +
       `🏛️ ${loc}\n` +
       `📱 ${d.phone1 || '-'}\n` +
       `⏰ ${sched}\n\n` +
-      `🔗 عرض في الدليل:\n<code>asaasedu.com/listing/${newRef.id}</code>`,
+      `🔗 عرض في الدليل:\n<code>asaasedu.com/doctor/${newRef.id}</code>`,
       { parse_mode: 'HTML', reply_markup: mainKb(store[ctx.chat.id]?.role || 'admin') }
     )
   } catch (e) {

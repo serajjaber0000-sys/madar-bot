@@ -226,7 +226,6 @@ import { db } from '@/firebase/config'
 const router = useRouter()
 
 const loading = ref(true)
-const doctors = shallowRef([])
 const directoryDocs = shallowRef([])
 const selectedGovernorate = ref('')
 const specialty = ref('')
@@ -243,7 +242,6 @@ const sliderPaused = ref(false)
 const reviewData = ref([])
 let sliderTimer = null
 let touchStartX = 0
-let unsubDoctors = null
 let unsubSliders = null
 let unsubDirectory = null
 
@@ -270,9 +268,7 @@ function setCategory(cat) {
 
 // base list restricted to the current category
 const allDoctors = computed(() => {
-  const subscribed = doctors.value.map(d => ({ ...d, _source: 'subscribed' }))
-  const listings = directoryDocs.value.map(d => ({ ...d, _source: 'listing' }))
-  return [...subscribed, ...listings]
+  return directoryDocs.value.map(d => ({ ...d, _source: 'listing' }))
 })
 
 const categoryList = computed(() => {
@@ -300,10 +296,9 @@ const openNow24h = computed(() => {
   return allDoctors.value.filter(d => {
     if (d.is_24h) return true
     if (d.weekly_schedule && d.weekly_schedule.length) {
-      return d.weekly_schedule.every(day => {
-        if (!day.enabled) return true
-        return day.from === '00:00' && day.to === '23:59'
-      })
+      const enabledDays = d.weekly_schedule.filter(day => day.enabled)
+      if (enabledDays.length === 0) return false
+      return enabledDays.every(day => day.from === '00:00' && day.to === '23:59')
     }
     return false
   }).slice(0, 12)
@@ -357,11 +352,7 @@ function resetAll() { selectedGovernorate.value = ''; specialty.value = ''; sele
 watch(selectedGovernorate, () => { if (selectedArea.value && !areas.value.includes(selectedArea.value)) selectedArea.value = '' })
 
 function openDoctor(doc) {
-  if (doc.is_directory_listing) {
-    router.push('/listing/' + doc.id)
-  } else {
-    router.push('/doctor/' + doc.clinicId)
-  }
+  router.push('/listing/' + doc.id)
 }
 
 function getTypeIcon24h(doc) {
@@ -393,18 +384,9 @@ onMounted(async () => {
   const cached = sessionStorage.getItem('madar_doctors_cache')
   const cacheTime = sessionStorage.getItem('madar_doctors_cache_time')
   if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < 10 * 60 * 1000) {
-    doctors.value = JSON.parse(cached)
+    directoryDocs.value = JSON.parse(cached)
     loading.value = false
   }
-
-  unsubDoctors = onSnapshot(collection(db, 'doctor_profiles'), (snap) => {
-    const list = []
-    snap.forEach(d => { const data = d.data(); if (data.is_public !== false) list.push({ id: d.id, ...data }) })
-    doctors.value = list
-    sessionStorage.setItem('madar_doctors_cache', JSON.stringify(list))
-    sessionStorage.setItem('madar_doctors_cache_time', String(Date.now()))
-    loading.value = false
-  }, () => { loading.value = false })
 
   unsubDirectory = onSnapshot(collection(db, 'directory_listings'), (snap) => {
     const list = []
@@ -413,7 +395,8 @@ onMounted(async () => {
       if (data.enabled !== false) list.push({ id: d.id, ...data, is_directory_listing: true, is_subscribed: false })
     })
     directoryDocs.value = list
-  }, () => {})
+    loading.value = false
+  }, () => { loading.value = false })
 
   unsubSliders = onSnapshot(collection(db, 'site_sliders'), (snap) => {
     const now = new Date().toISOString().split('T')[0]
@@ -427,24 +410,10 @@ onMounted(async () => {
     slides.value = loaded
     startSlider()
   }, () => {})
-
-  const sample = allDoctors.value.filter(d => !d.is_lab && !d.is_hospital && !d.is_pharmacy && !d.is_directory_listing).slice(0, 20)
-  const revs = []
-  for (const d of sample) {
-    try {
-      const { reviewsRepo } = await import('@/services/clinic')
-      const r = await reviewsRepo.listByClinic(d.clinicId)
-      r.forEach(x => { x._doctorName = d.doctor_name })
-      revs.push(...r)
-    } catch {}
-  }
-  revs.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
-  reviewData.value = revs
 })
 
 onUnmounted(() => {
   if (sliderTimer) clearInterval(sliderTimer)
-  if (unsubDoctors) unsubDoctors()
   if (unsubSliders) unsubSliders()
   if (unsubDirectory) unsubDirectory()
 })
