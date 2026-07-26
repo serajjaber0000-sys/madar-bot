@@ -85,20 +85,34 @@
 
     <!-- ============ 24H SECTION ============ -->
     <section v-if="openNow24h.length" class="tb-section">
-      <div class="tb-sec-header"><h2>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2" style="margin-left:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        أطباء وعيادات 24 ساعة
-      </h2></div>
+      <div class="tb-24h-header">
+        <div class="tb-24h-header-right">
+          <div class="tb-24h-header-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <h2 class="tb-24h-title">متاح الآن 24 ساعة</h2>
+            <p class="tb-24h-sub">{{ openNow24h.length }} مرفق مفتوح حالياً</p>
+          </div>
+        </div>
+        <span class="tb-24h-live-badge">
+          <span class="tb-24h-live-dot"></span>
+          مباشر
+        </span>
+      </div>
       <div class="tb-24h-scroll">
-        <router-link v-for="doc in openNow24h" :key="doc.clinicId" :to="'/doctor/' + doc.clinicId" class="tb-24h-card">
-          <div class="tb-24h-avatar" :style="{ background: getSpecialtyColor(doc.specialty) }">
-            <img v-if="doc.photoUrl" :src="doc.photoUrl" alt="" loading="lazy" />
-            <span v-else>{{ initials(doc.doctor_name) }}</span>
+        <div v-for="doc in openNow24h" :key="doc.id || doc.clinicId" class="tb-24h-card" @click="openDoctor(doc)">
+          <div class="tb-24h-avatar-wrap">
+            <div class="tb-24h-avatar" :style="{ background: getSpecialtyColor(doc.specialty) }">
+              <img v-if="doc.photoUrl" :src="doc.photoUrl" alt="" loading="lazy" />
+              <span v-else>{{ initials(doc.doctor_name) }}</span>
+            </div>
+            <span class="tb-24h-type-icon">{{ getTypeIcon24h(doc) }}</span>
             <span class="tb-24h-dot"></span>
           </div>
-          <span class="tb-24h-name">{{ doc.doctor_name || 'طبيب' }}</span>
-          <span class="tb-24h-spec">{{ doc.specialty || 'عام' }}</span>
-        </router-link>
+          <span class="tb-24h-name">{{ doc.doctor_name || 'مرفق' }}</span>
+          <span class="tb-24h-type-label">{{ getTypeLabel24h(doc) }}</span>
+        </div>
       </div>
     </section>
 
@@ -345,6 +359,24 @@ function openDoctor(doc) {
     window.location.href = '/doctor/' + doc.clinicId
   }
 }
+
+function getTypeIcon24h(doc) {
+  const ft = doc.facility_type
+  if (ft === 'pharmacy') return '💊'
+  if (ft === 'hospital') return '🏥'
+  if (ft === 'lab') return '🔬'
+  if (ft === 'physio') return '🦴'
+  return '🩺'
+}
+
+function getTypeLabel24h(doc) {
+  const ft = doc.facility_type
+  if (ft === 'pharmacy') return 'صيدلية'
+  if (ft === 'hospital') return 'مستشفى'
+  if (ft === 'lab') return 'مختبر'
+  if (ft === 'physio') return 'علاج طبيعي'
+  return doc.specialty || 'طبيب'
+}
 function onTouchStart(e) { touchStartX = e.touches[0].clientX }
 function onTouchEnd(e) { const dx = e.changedTouches[0].clientX - touchStartX; if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide() } }
 function pauseSlider() { sliderPaused.value = true }
@@ -505,14 +537,26 @@ onUnmounted(() => {
 .tb-rev-date{font-size:0.66rem;color:#94a3b8}
 
 /* ============ 24H SECTION ============ */
+.tb-24h-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:linear-gradient(135deg,#064e3b 0%,#0d9488 50%,#14b8a6 100%);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(13,148,136,0.25)}
+.tb-24h-header-right{display:flex;align-items:center;gap:10px}
+.tb-24h-header-icon{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);display:grid;place-items:center;flex-shrink:0}
+.tb-24h-title{font:800 1rem/1.2 'Segoe UI',sans-serif;color:#fff;margin:0}
+.tb-24h-sub{font:500 0.72rem/1.2 'Segoe UI',sans-serif;color:rgba(255,255,255,0.65);margin:2px 0 0}
+.tb-24h-live-badge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);border-radius:20px;padding:5px 12px;font:700 0.7rem 'Segoe UI',sans-serif;color:#fff;flex-shrink:0}
+.tb-24h-live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,0.6);animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+
 .tb-24h-scroll{display:flex;gap:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}
 .tb-24h-scroll::-webkit-scrollbar{display:none}
-.tb-24h-card{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px;max-width:80px;text-decoration:none;color:inherit;text-align:center;flex-shrink:0}
-.tb-24h-avatar{width:60px;height:60px;border-radius:16px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:0.9rem;overflow:hidden;position:relative;box-shadow:0 3px 12px rgba(0,0,0,0.1)}
+.tb-24h-card{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:88px;max-width:88px;text-decoration:none;color:inherit;text-align:center;flex-shrink:0;background:#fff;border-radius:14px;padding:12px 6px 10px;border:1.5px solid #e2e8f0;cursor:pointer;transition:all .2s}
+.tb-24h-card:active{transform:scale(0.95);box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.tb-24h-avatar-wrap{position:relative;width:54px;height:54px}
+.tb-24h-avatar{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:0.85rem;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,0.12)}
 .tb-24h-avatar img{width:100%;height:100%;object-fit:cover}
-.tb-24h-dot{position:absolute;bottom:2px;right:2px;width:12px;height:12px;border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 0 6px rgba(34,197,94,0.4)}
+.tb-24h-type-icon{position:absolute;top:-4px;left:-4px;width:22px;height:22px;border-radius:7px;background:#fff;display:grid;place-items:center;font-size:0.7rem;box-shadow:0 2px 6px rgba(0,0,0,0.12);border:1.5px solid #f0fdfa}
+.tb-24h-dot{position:absolute;bottom:0;right:0;width:11px;height:11px;border-radius:50%;background:#22c55e;border:2.5px solid #fff;box-shadow:0 0 6px rgba(34,197,94,0.4)}
 .tb-24h-name{font:700 0.7rem/1.2 'Segoe UI',sans-serif;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.tb-24h-spec{font-size:0.6rem;font-weight:600;color:#22c55e}
+.tb-24h-type-label{font:600 0.58rem/1 'Segoe UI',sans-serif;color:#0d9488;background:#f0fdfa;border-radius:6px;padding:2px 6px}
 
 /* ============ LIST / SKELETON / EMPTY ============ */
 .tb-list{display:flex;flex-direction:column;gap:8px}
