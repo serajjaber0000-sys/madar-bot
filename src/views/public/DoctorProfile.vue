@@ -3,11 +3,11 @@
     <!-- Navigation -->
     <nav class="dp-nav">
       <div class="dp-nav-inner">
-        <router-link to="/directory" class="dp-back-btn" aria-label="العودة">
+        <button class="dp-back-btn" @click="goBack" aria-label="العودة">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5M12 19l7-7-7-7"/>
           </svg>
-        </router-link>
+        </button>
       </div>
     </nav>
 
@@ -686,13 +686,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { collection, query, where, getDocs, onSnapshot, addDoc } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import { doctorProfilesRepo, reviewsRepo, appointmentsRepo } from '@/services/clinic'
 import { to12h, to12hShort } from '@/utils/time'
 
 const route = useRoute()
+const router = useRouter()
 const clinicId = computed(() => route.params.clinicId)
 
 // State
@@ -790,6 +791,10 @@ function generateTimeSlots(from, to) {
 function openLightbox(idx) {
   lightboxIndex.value = idx
   lightboxOpen.value = true
+}
+
+function goBack() {
+  if (window.history.length > 1) { router.back() } else { router.push('/directory') }
 }
 
 function getStarPercentage(star) {
@@ -1077,7 +1082,7 @@ onUnmounted(() => {
 <style scoped>
 /* ===== RESET & BASE ===== */
 .dp {
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: inherit;
   direction: rtl;
   color: #1e293b;
   background: #f4f7fa;
@@ -1121,7 +1126,8 @@ onUnmounted(() => {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  text-decoration: none;
+  border: none;
+  cursor: pointer;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
@@ -1135,7 +1141,7 @@ onUnmounted(() => {
 .dp-nav-title {
   flex: 1;
   text-align: center;
-  font: 800 0.95rem 'Segoe UI', sans-serif;
+  font: 800 0.95rem 'Tajawal', sans-serif;
   color: #fff;
 }
 .dp-nav-spacer { width: 44px; flex-shrink: 0; }

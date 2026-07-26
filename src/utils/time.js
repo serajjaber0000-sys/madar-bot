@@ -71,9 +71,37 @@ export function timeAgoAr(iso) {
   } catch { return '' }
 }
 
+let _audioCtx = null
+let _audioReady = false
+
+function getAudioCtx() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)() } catch {}
+  }
+  if (_audioCtx && _audioCtx.state === 'suspended') {
+    _audioCtx.resume().then(() => { _audioReady = true }).catch(() => {})
+  }
+  return _audioCtx
+}
+
+if (typeof window !== 'undefined') {
+  const resumeAudio = () => {
+    _audioReady = true
+    getAudioCtx()
+    window.removeEventListener('click', resumeAudio)
+    window.removeEventListener('touchstart', resumeAudio)
+    window.removeEventListener('keydown', resumeAudio)
+  }
+  window.addEventListener('click', resumeAudio, { once: true })
+  window.addEventListener('touchstart', resumeAudio, { once: true })
+  window.addEventListener('keydown', resumeAudio, { once: true })
+}
+
 export function playNotifSound(type = 'default') {
+  if (!_audioReady) return
+  const ctx = getAudioCtx()
+  if (!ctx) return
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
     if (type === 'approval') {
       const notes = [523, 659, 784]
       notes.forEach((freq, i) => {
@@ -100,6 +128,21 @@ export function playNotifSound(type = 'default') {
       gain.connect(ctx.destination)
       osc.start(ctx.currentTime)
       osc.stop(ctx.currentTime + 0.5)
+    } else if (type === 'chat') {
+      const notes = [1047, 1319, 1568]
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1)
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + i * 0.1 + 0.03)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.2)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(ctx.currentTime + i * 0.1)
+        osc.stop(ctx.currentTime + i * 0.1 + 0.25)
+      })
     } else {
       const notes = [880, 1100, 1320]
       notes.forEach((freq, i) => {

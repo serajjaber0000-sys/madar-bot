@@ -9,6 +9,7 @@ const routes = [
   { path: '/bmi', component: () => import('../views/public/BmiCalculator.vue'), meta: { public: true, title: 'حاسبة الوزن المثالي — مدار' } },
   { path: '/favorites', component: () => import('../views/public/FavoritesBookings.vue'), meta: { public: true, title: 'المفضلة — مدار' } },
   { path: '/bookings', component: () => import('../views/public/Bookings.vue'), meta: { public: true, title: 'حجوزاتي — مدار' } },
+  { path: '/chat', component: () => import('../views/public/PatientChat.vue'), meta: { public: true, title: 'محادثة مع العيادة — مدار' } },
   { path: '/login', component: () => import('../views/auth/Login.vue'), meta: { guest: true, title: 'دخول النظام — مدار' } },
   { path: '/onboarding', component: () => import('../views/auth/Onboarding.vue'), meta: { guest: true, title: 'مرحباً بك — مدار' } },
   { path: '/maintenance', component: () => import('../views/MaintenancePage.vue'), meta: { public: true, title: 'صيانة — مدار' } },
@@ -43,6 +44,7 @@ const routes = [
   { path: '/clinic/:clinicId/secretary/dashboard', component: () => import('../views/secretary/Dashboard.vue'), meta: { requiresAuth: true, role: 'secretary', title: 'لوحة التحكم — مدار' } },
   { path: '/clinic/:clinicId/secretary/patients', component: () => import('../views/secretary/Patients.vue'), meta: { requiresAuth: true, role: 'secretary', title: 'المرضى — مدار' } },
   { path: '/clinic/:clinicId/secretary/appointments', component: () => import('../views/secretary/Appointments.vue'), meta: { requiresAuth: true, role: 'secretary', title: 'المواعيد — مدار' } },
+  { path: '/clinic/:clinicId/secretary/chats', component: () => import('../views/secretary/SecretaryChats.vue'), meta: { requiresAuth: true, role: 'secretary', title: 'محادثات المرضى — مدار' } },
 
   // Shared (Owner + Secretary)
   { path: '/clinic/:clinicId/notifications', component: () => import('../views/shared/Notifications.vue'), meta: { requiresAuth: true, role: 'owner,secretary', title: 'الإشعارات — مدار' } },

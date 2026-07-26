@@ -55,7 +55,7 @@
         "headers": [
           {
             "header": "Content-Security-Policy",
-            "value": "default-src 'self'; img-src 'self' data: https://*.googleapis.com https://*.gstatic.com https://firebasestorage.googleapis.com https://api.qrserver.com; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firebasestorage.googleapis.com https://*.cloudfunctions.net; frame-src 'self' https://wa.me;"
+            "value": "default-src 'self'; img-src 'self' data: https:; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:; frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com https://player.vimeo.com https://wa.me;"
           },
           {
             "header": "X-Content-Type-Options",

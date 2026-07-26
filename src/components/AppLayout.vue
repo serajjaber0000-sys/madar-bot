@@ -125,6 +125,7 @@ import { useAuthStore } from '../stores/auth'
 import { useI18n } from '../composables/useI18n'
 import { db } from '../firebase/config'
 import { collection, query, where, onSnapshot, limit } from 'firebase/firestore'
+import { playNotifSound } from '../utils/time'
 
 const authStore = useAuthStore()
 const { t } = useI18n()
@@ -138,26 +139,6 @@ const editClinicNameInput = ref('')
 let unsubscribeNotif = null
 let notifSound = null
 let lastNotifCount = 0
-
-function playNotifSound() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const notes = [880, 1100, 1320]
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = freq
-      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12)
-      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + i * 0.12 + 0.03)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.25)
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.start(ctx.currentTime + i * 0.12)
-      osc.stop(ctx.currentTime + i * 0.12 + 0.3)
-    })
-  } catch (e) {}
-}
 
 const icons = {
   dashboard: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 8.5L10 2.5l7.5 6v8a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 16.5z" stroke-linecap="round" stroke-linejoin="round"/><polyline points="8 18 8 11 12 11 12 18" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -199,7 +180,8 @@ const secretaryItems = computed(() => [
   { to: '/clinic/:clinicId/secretary/patients', icon: icons.patients, label: 'المرضى' },
   { to: '/clinic/:clinicId/secretary/appointments', icon: icons.appointments, label: 'المواعيد' },
   { to: '/clinic/:clinicId/notifications', icon: icons.bell, label: 'الإشعارات', badge: unreadNotifCount.value },
-  { to: '/clinic/:clinicId/chat', icon: icons.chat, label: 'المحادثة' },
+  { to: '/clinic/:clinicId/chat', icon: icons.chat, label: 'محادثة الطاقم' },
+  { to: '/clinic/:clinicId/secretary/chats', icon: icons.chat, label: 'محادثة المرضى' },
 ])
 
 const menuItems = computed(() => {

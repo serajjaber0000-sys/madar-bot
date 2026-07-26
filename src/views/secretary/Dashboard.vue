@@ -4,7 +4,10 @@
       <!-- HEADER -->
       <header class="dash-header">
         <div class="dh-actions">
-          <router-link :to="'/clinic/' + clinicId + '/chat'" class="dh-circle-btn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></router-link>
+          <router-link :to="'/clinic/' + clinicId + '/secretary/chats'" class="dh-circle-btn dh-chat-btn" title="محادثة المرضى">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span v-if="unreadChatCount > 0" class="notif-badge chat-badge">{{ unreadChatCount }}</span>
+          </router-link>
           <div class="dh-circle-btn" @click.stop="showSettings = !showSettings" title="الإعدادات"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <transition name="dropdown">
               <div v-if="showSettings" class="settings-panel" @click.stop>
@@ -91,8 +94,15 @@
               </div>
             </div>
 
-            <div v-if="pendingBookings.length === 0 && notifications.length === 0" class="nd-empty"><p>لا توجد إشعارات</p></div>
+            <div v-if="pendingBookings.length === 0 && notifications.length === 0 && chatNotifications.length === 0" class="nd-empty"><p>لا توجد إشعارات</p></div>
             <div v-else class="nd-list">
+              <div v-for="n in chatNotifications" :key="n.id" class="nd-item nd-chat" :class="{ unread: !n.read }" @click="openChatFromNotif(n)">
+                <div class="nd-icon nd-icon-chat">💬</div>
+                <div class="nd-content">
+                  <span class="nd-title">{{ n.title }}</span>
+                  <span class="nd-msg">{{ n.message }}</span>
+                </div>
+              </div>
               <div v-for="n in notifications.slice(0, 8)" :key="n.id" class="nd-item" :class="{ unread: !n.read }">
                 <div class="nd-content">
                   <span class="nd-title">{{ n.title || 'إشعار' }}</span>
@@ -188,9 +198,14 @@
                   <td class="qt-time"><span class="slot-time">{{ to12hShort(a.start_time) || '—' }}</span></td>
                   <td class="qt-countdown"><span v-if="a.start_time && a.status !== 'completed' && a.status !== 'missed'" class="countdown-badge">{{ countdownReactive(a.appointment_date, a.start_time) }}</span><span v-else>—</span></td>
                   <td class="qt-fee">
-                    <span v-if="a.status === 'completed' && a.consultation_fee" class="fee-paid">مدفوع · {{ Number(a.consultation_fee).toLocaleString() }} د.ع</span>
-                    <span v-else-if="a.consultation_fee" class="fee-amount">{{ Number(a.consultation_fee).toLocaleString() }} د.ع</span>
-                    <span v-else class="fee-none">—</span>
+                    <div class="fee-cell">
+                      <span v-if="a.status === 'completed' && a.consultation_fee" class="fee-paid">مدفوع · {{ Number(a.consultation_fee).toLocaleString() }} د.ع</span>
+                      <span v-else-if="a.consultation_fee" class="fee-amount">{{ Number(a.consultation_fee).toLocaleString() }} د.ع</span>
+                      <span v-else class="fee-none">—</span>
+                      <button v-if="a.status === 'completed' || (a.consultation_fee && a.status !== 'booked')" class="fee-edit-btn" title="تعديل الأتعاب" @click="openEditFeeModal(a)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                    </div>
                   </td>
                   <td class="qt-status"><span class="qt-badge" :class="'badge-' + (a.status || 'booked')">{{ statusLabel(a) }}</span></td>
                   <td class="qt-actions">
@@ -199,6 +214,12 @@
                       <button v-if="a.status === 'arrived'" class="abtn abtn-purple" @click="openFeeModal(a)">اكتمل</button>
                       <button v-if="a.status === 'completed'" class="abtn abtn-done" disabled>تم</button>
                       <button v-if="a.status === 'missed'" class="abtn abtn-gone" disabled>غاب</button>
+                      <button v-if="a.device_id" class="abtn abtn-chat" title="محادثة المريض" @click="openPatientChat(a.device_id)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                      </button>
+                      <button class="abtn abtn-delete" title="حذف الحجز" @click="confirmDeleteQueue(a)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -361,6 +382,24 @@
         </div>
       </div>
 
+      <!-- EDIT FEE MODAL -->
+      <div v-if="showEditFeeModal" class="modal-overlay" @click.self="showEditFeeModal = false">
+        <div class="modal modal-sm">
+          <div class="modal-head"><h3>تعديل الأتعاب</h3><button class="modal-close" @click="showEditFeeModal = false">✕</button></div>
+          <div class="modal-body">
+            <p class="fee-patient">{{ editFeeTarget?.full_name }}</p>
+            <div class="form-field"><label>الأتعاب (د.ع)</label><input v-model.number="editFeeValue" type="number" min="0" step="1000" placeholder="25000" /></div>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-cancel" @click="showEditFeeModal = false">إلغاء</button>
+            <button class="btn-save" @click="saveEditFee" :disabled="savingEditFee">
+              <span v-if="savingEditFee" class="btn-spinner"></span>
+              {{ savingEditFee ? 'جاري...' : 'حفظ' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- SET TIME MODAL -->
       <div v-if="showSetTimeModal" class="modal-overlay" @click.self="showSetTimeModal = false">
         <div class="modal modal-sm">
@@ -378,6 +417,23 @@
             <button class="btn-save" @click="confirmSetTime" :disabled="savingNotif || !setTimeDate">
               <span v-if="savingNotif" class="btn-spinner"></span>
               {{ savingNotif ? 'جاري...' : 'موافقة وتحديد الوقت' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DELETE CONFIRM MODAL -->
+      <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
+        <div class="modal modal-sm">
+          <div class="modal-head"><h3>تأكيد الحذف</h3><button class="modal-close" @click="showDeleteConfirm = false">✕</button></div>
+          <div class="modal-body">
+            <p style="margin:0;color:#64748b;font-size:.9rem;">هل تريد حذف حجز <strong style="color:#1e293b">{{ deleteTarget?.full_name }}</strong> ؟</p>
+          </div>
+          <div class="modal-foot">
+            <button class="btn-cancel" @click="showDeleteConfirm = false">إلغاء</button>
+            <button class="btn-delete" @click="deleteQueueItem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              حذف
             </button>
           </div>
         </div>
@@ -445,6 +501,10 @@ const savingComplete = ref(false)
 const toast = ref({ show: false, msg: '', type: 'success' })
 const feePatient = ref(null)
 const completeFee = ref(null)
+const showEditFeeModal = ref(false)
+const editFeeTarget = ref(null)
+const editFeeValue = ref(null)
+const savingEditFee = ref(false)
 const bookingSearch = ref('')
 const bookingPatients = ref([])
 const booking = ref({ patient_id: '', patient_name: '', patient_phone: '', patient_age: null, date: todayKey, start_time: '', end_time: '', fee: null, notes: '' })
@@ -452,6 +512,12 @@ const newPatient = ref({ full_name: '', age: null, gender: '', blood_type: '', w
 const editingPatient = ref(null)
 const returnToBookingAfterAdd = ref(false)
 const defaultConsultationFee = ref(null)
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref(null)
+const unreadChatCount = ref(0)
+const chatNotifications = ref([])
+let lastChatCount = 0
+let unsubChatRooms = null
 
 const slotInterval = ref(20)
 const clinicOpenTime = ref('')
@@ -683,6 +749,49 @@ async function confirmComplete() {
   finally { savingComplete.value = false }
 }
 
+function openEditFeeModal(a) {
+  editFeeTarget.value = a
+  editFeeValue.value = a.consultation_fee ?? null
+  showEditFeeModal.value = true
+}
+
+async function saveEditFee() {
+  if (!editFeeTarget.value) return
+  savingEditFee.value = true
+  try {
+    await updateDoc(doc(db, 'appointments', editFeeTarget.value.id), { consultation_fee: editFeeValue.value })
+    showToast('✓ تم تعديل الأتعاب')
+    showEditFeeModal.value = false
+    editFeeTarget.value = null
+  } catch (e) { showToast('خطأ في الحفظ', 'error') }
+  finally { savingEditFee.value = false }
+}
+
+function confirmDeleteQueue(appt) {
+  deleteTarget.value = appt
+  showDeleteConfirm.value = true
+}
+
+async function deleteQueueItem() {
+  if (!deleteTarget.value) return
+  try {
+    await appointmentsRepo.remove(deleteTarget.value.id)
+    todayQueue.value = todayQueue.value.filter(a => a.id !== deleteTarget.value.id)
+    showToast('تم حذف الحجز')
+    showDeleteConfirm.value = false
+    deleteTarget.value = null
+  } catch (e) { showToast('خطأ في الحذف', 'error') }
+}
+
+function openPatientChat(deviceId) {
+  window.location.href = `/clinic/${clinicId.value}/secretary/chats`
+}
+
+function openChatFromNotif(n) {
+  showNotifDropdown.value = false
+  window.location.href = `/clinic/${clinicId.value}/secretary/chats`
+}
+
 async function savePatient() {
   if (!newPatient.value.full_name.trim()) return
   savingPatient.value = true
@@ -837,13 +946,52 @@ onMounted(async () => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       notifications.value = all.filter(n => (n.toUserId === auth.uid || n.toUserId === 'all') && n.type !== 'message')
       pendingBookings.value = all.filter(n => n.type === 'booking_request' && n.status === 'pending')
-      unreadNotifCount.value = notifications.value.filter(n => !n.read).length + pendingBookings.value.length
+      unreadNotifCount.value = notifications.value.filter(n => !n.read).length + pendingBookings.value.length + unreadChatCount.value
       if (pendingBookings.value.length > lastPendingCount) playNotifSound('default')
       lastPendingCount = pendingBookings.value.length
     })
   ]
+
+  unsubChatRooms = onSnapshot(query(collection(db, 'patient_chat_rooms'), where('clinicId', '==', clinicId.value)), roomSnap => {
+    const rooms = {}
+    roomSnap.docs.forEach(d => { rooms[d.id] = { id: d.id, ...d.data() } })
+    const roomIds = Object.keys(rooms)
+    if (roomIds.length === 0) { unreadChatCount.value = 0; lastChatCount = 0; chatNotifications.value = []; return }
+    const unreadUnsub = onSnapshot(query(collection(db, 'patient_chat_messages'), where('roomId', 'in', roomIds.slice(0, 10))), msgSnap => {
+      const unreadDocs = msgSnap.docs.filter(d => { const m = d.data(); return m.sender === 'patient' && !m.read })
+      const newCount = unreadDocs.length
+      if (lastChatCount > 0 && newCount > lastChatCount) {
+        playNotifSound('chat')
+        const latest = unreadDocs.pop()
+        const roomData = latest ? rooms[latest.data().roomId] : null
+        const patientName = roomData?.patient_name || 'مريض'
+        showToast('💬 رسالة جديدة من ' + patientName)
+      }
+      lastChatCount = newCount
+      unreadChatCount.value = newCount
+
+      const chatNotifs = []
+      const seenRooms = new Set()
+      for (const d of unreadDocs.reverse()) {
+        const m = d.data()
+        if (seenRooms.has(m.roomId)) continue
+        seenRooms.add(m.roomId)
+        const room = rooms[m.roomId]
+        chatNotifs.push({
+          id: 'chat-' + d.id,
+          title: '💬 محادثة جديدة',
+          message: (room?.patient_name || 'مريض') + ': ' + (m.text || '').slice(0, 60),
+          read: false,
+          roomId: m.roomId,
+          type: 'chat'
+        })
+      }
+      chatNotifications.value = chatNotifs
+    }, () => { unreadChatCount.value = 0; chatNotifications.value = [] })
+    unsubs.push(unreadUnsub)
+  }, () => {})
 })
-onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); clearTimeout(searchTimeout); clearTimeout(bookingTimeout); if (timerInterval) clearInterval(timerInterval) })
+onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); if (unsubChatRooms) unsubChatRooms(); clearTimeout(searchTimeout); clearTimeout(bookingTimeout); if (timerInterval) clearInterval(timerInterval) })
 </script>
 
 <style scoped>
@@ -852,6 +1000,8 @@ onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); c
 .dh-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .dh-circle-btn { width: 42px; height: 42px; border-radius: 50%; background: #fff; border: none; display: grid; place-items: center; color: #64748b; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; transition: all 0.2s; }
 .dh-circle-btn:hover { color: #21A8E0; }
+.dh-chat-btn { text-decoration: none; color: #0d9488; }
+.dh-chat-btn:hover { color: #0f766e; }
 .notif-badge { position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ef4444; color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; }
 .nd-overlay { position: fixed; inset: 0; z-index: 999; background: transparent; }
 .notif-dropdown { position: fixed; width: 340px; max-width: calc(100vw - 24px); background: #fff; border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 1000; max-height: 70vh; overflow-y: auto; }
@@ -882,6 +1032,9 @@ onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); c
 .nd-list { }
 .nd-item { padding: 10px 16px; border-bottom: 1px solid #f8fafc; }
 .nd-item.unread { background: rgba(33,168,224,0.03); }
+.nd-item.nd-chat { cursor: pointer; display: flex; align-items: flex-start; gap: 10px; background: rgba(13,148,136,0.04); }
+.nd-item.nd-chat:hover { background: rgba(13,148,136,0.08); }
+.nd-icon-chat { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
 .nd-title { display: block; font-size: 0.78rem; font-weight: 700; color: #1e293b; }
 .nd-msg { display: block; font-size: 0.72rem; color: #64748b; margin-top: 2px; }
 .dropdown-enter-active { transition: all 0.2s ease; }
@@ -1006,6 +1159,9 @@ onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); c
 .fee-paid { display: inline-block; padding: 4px 10px; border-radius: 8px; background: #dcfce7; color: #15803d; font-size: 0.72rem; font-weight: 700; }
 .fee-amount { font-size: 0.78rem; font-weight: 600; color: #1e293b; }
 .fee-none { color: #cbd5e1; }
+.fee-cell { display: flex; align-items: center; gap: 6px; }
+.fee-edit-btn { width: 22px; height: 22px; border: none; border-radius: 6px; background: #eff6ff; color: #1150c9; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.fee-edit-btn:hover { background: #dbeafe; transform: scale(1.1); }
 .qt-status { width: 90px; }
 .qt-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; }
 .badge-booked { background: #e0f2fe; color: #0369a1; }
@@ -1021,6 +1177,13 @@ onUnmounted(() => { unsubs.forEach(u => { if (typeof u === 'function') u() }); c
 .abtn-purple:hover { background: #ddd6fe; box-shadow: 0 2px 8px rgba(139,92,246,0.2); }
 .abtn-done { background: #dcfce7; color: #15803d; opacity: 0.6; cursor: default; }
 .abtn-gone { background: #fef2f2; color: #dc2626; opacity: 0.5; cursor: default; }
+.abtn-chat { background: #e0f2fe; color: #0369a1; }
+.abtn-chat:hover { background: #bae6fd; box-shadow: 0 2px 8px rgba(14,165,233,0.2); }
+.abtn-delete { background: #fef2f2; color: #dc2626; }
+.abtn-delete:hover { background: #fee2e2; box-shadow: 0 2px 8px rgba(239,68,68,0.2); }
+.btn-delete { display: inline-flex; align-items: center; gap: 6px; padding: 8px 20px; border-radius: 8px; border: none; background: #dc2626; color: #fff; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.btn-delete:hover { background: #b91c1c; }
+.chat-badge { background: #0d9488; }
 
 .archive-table .qt-pay { width: 100px; }
 .pay-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; }

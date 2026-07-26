@@ -1,11 +1,9 @@
 <template>
   <div class="login-page">
-    <button class="login-back" @click="$router.back()">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
     <div class="bg-orbs" aria-hidden="true">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
     </div>
 
     <div class="login-card">
@@ -18,31 +16,33 @@
       </div>
 
       <Transition name="shake">
-        <div v-if="error" class="alert-error">
+        <div v-if="error" class="alert-error" :key="error">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
           <span>{{ error }}</span>
         </div>
       </Transition>
 
-      <form class="login-form" @submit.prevent="login">
+      <form class="login-form" @submit.prevent="login" novalidate>
         <div class="input-group">
           <label for="email">البريد الإلكتروني</label>
-          <div :class="['input-box', { active: focus === 'email' }]">
+          <div :class="['input-box', { active: focus === 'email', error: fieldError === 'email' }]" @click="focus='email'">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7"/></svg>
-            <input id="email" v-model.trim="email" type="email" placeholder="user@clinic.com" @focus="focus='email'" @blur="focus=''" autocomplete="username" required />
+            <input id="email" v-model.trim="email" type="email" placeholder="doctor@clinic.com" @focus="focus='email'; fieldError=''" @blur="focus=''" autocomplete="username" dir="ltr" />
           </div>
+          <span v-if="fieldError === 'email'" class="field-err">أدخل البريد الإلكتروني</span>
         </div>
 
         <div class="input-group">
           <label for="password">كلمة المرور</label>
-          <div :class="['input-box', { active: focus === 'password' }]">
+          <div :class="['input-box', { active: focus === 'password', error: fieldError === 'password' }]" @click="focus='password'">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-            <input id="password" v-model="password" :type="showPass ? 'text' : 'password'" placeholder="••••••••" @focus="focus='password'" @blur="focus=''" autocomplete="current-password" required />
-            <button type="button" class="toggle-vis" @click="showPass = !showPass" tabindex="-1">
+            <input id="password" v-model="password" :type="showPass ? 'text' : 'password'" placeholder="••••••••" @focus="focus='password'; fieldError=''" @blur="focus=''" autocomplete="current-password" />
+            <button type="button" class="toggle-vis" @click.stop="showPass = !showPass" tabindex="-1" :aria-label="showPass ? 'إخفاء' : 'إظهار'">
               <svg v-if="!showPass" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
           </div>
+          <span v-if="fieldError === 'password'" class="field-err">أدخل كلمة المرور</span>
         </div>
 
         <label class="remember-label">
@@ -51,8 +51,8 @@
           <span>حفظ بيانات الدخول</span>
         </label>
 
-        <button type="submit" class="btn-login" :disabled="loading">
-          <span v-if="!loading">تسجيل الدخول</span>
+        <button type="submit" class="btn-login" :disabled="loading" :class="{ loading }">
+          <span v-if="!loading" class="btn-text">تسجيل الدخول</span>
           <div v-else class="loading-row">
             <div class="spinner"></div>
             <span>جاري الدخول...</span>
@@ -60,7 +60,9 @@
         </button>
       </form>
 
-      <p class="copyright">© {{ new Date().getFullYear() }} مدار — جميع الحقوق محفوظة</p>
+      <div class="login-footer">
+        <p>© {{ new Date().getFullYear() }} مدار — جميع الحقوق محفوظة</p>
+      </div>
     </div>
   </div>
 </template>
@@ -76,31 +78,55 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
-function setAuthUser(data) {
-  authStore.setUser(data)
-}
-
 const email = ref('')
 const password = ref('')
 const error = ref('')
+const fieldError = ref('')
 const loading = ref(false)
 const focus = ref('')
 const showPass = ref(false)
 const rememberMe = ref(true)
 
+function setAuthUser(data) {
+  authStore.setUser(data)
+}
+
+function validateEmail(val) {
+  if (!val) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
+}
+
 async function login() {
   error.value = ''
+  fieldError.value = ''
+
+  const emailLC = email.value.trim().toLowerCase()
+  const passwordVal = password.value
+
+  if (!emailLC) {
+    fieldError.value = 'email'
+    error.value = 'يرجى إدخال البريد الإلكتروني'
+    return
+  }
+  if (!validateEmail(emailLC)) {
+    fieldError.value = 'email'
+    error.value = 'البريد الإلكتروني غير صحيح'
+    return
+  }
+  if (!passwordVal) {
+    fieldError.value = 'password'
+    error.value = 'يرجى إدخال كلمة المرور'
+    return
+  }
+  if (passwordVal.length < 6) {
+    fieldError.value = 'password'
+    error.value = 'كلمة المرور قصيرة جداً'
+    return
+  }
+
   loading.value = true
+
   try {
-    const emailLC = email.value.trim().toLowerCase()
-    const passwordVal = password.value
-
-    if (!emailLC || !passwordVal) {
-      error.value = 'يرجى إدخال البريد الإلكتروني وكلمة المرور'
-      loading.value = false
-      return
-    }
-
     const userCredential = await signInWithEmailAndPassword(auth, emailLC, passwordVal)
     const uid = userCredential.user.uid
 
@@ -154,7 +180,7 @@ async function login() {
 
     const staffResults = await getDocs(query(
       collection(db, 'staff'), where('userId', '==', uid)
-    )).catch(e => { console.error('Staff query error:', e); return null })
+    )).catch(() => null)
 
     if (staffResults && !staffResults.empty) {
       const staffData = staffResults.docs[0].data()
@@ -185,7 +211,7 @@ async function login() {
 
     const clinicResults = await getDocs(query(
       collection(db, 'clinics'), where('ownerUserId', '==', uid)
-    )).catch(e => { console.error('Clinics query error:', e); return null })
+    )).catch(() => null)
 
     if (clinicResults && !clinicResults.empty) {
       const clinicDoc = clinicResults.docs[0]
@@ -213,7 +239,7 @@ async function login() {
 
     const adminResults = await getDocs(query(
       collection(db, 'admin_users'), where('userId', '==', uid)
-    )).catch(e => { console.error('Admin query error:', e); return null })
+    )).catch(() => null)
 
     if (adminResults && !adminResults.empty) {
       const adminData = adminResults.docs[0].data()
@@ -259,13 +285,11 @@ async function login() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 20px;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #1150c9 100%);
   position: relative;
   overflow: hidden;
 }
-.login-back{position:fixed;top:16px;left:16px;z-index:10;width:44px;height:44px;border-radius:12px;border:none;background:rgba(255,255,255,0.1);backdrop-filter:blur(8px);color:#fff;display:grid;place-items:center;cursor:pointer;transition:all .2s}
-.login-back:active{background:rgba(255,255,255,0.2);transform:scale(0.95)}
 
 .bg-orbs {
   position: fixed;
@@ -278,7 +302,7 @@ async function login() {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.3;
+  opacity: 0.25;
   will-change: transform;
 }
 
@@ -300,6 +324,16 @@ async function login() {
   animation: orbFloat 10s ease-in-out infinite reverse;
 }
 
+.orb-3 {
+  width: 180px;
+  height: 180px;
+  background: #d69e1f;
+  top: 50%;
+  left: 60%;
+  opacity: 0.12;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+
 @keyframes orbFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(20px, -15px) scale(1.03); }
@@ -309,17 +343,17 @@ async function login() {
   width: 100%;
   max-width: 380px;
   background: #fff;
-  border-radius: 20px;
-  padding: 36px 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  border-radius: 24px;
+  padding: 40px 32px 32px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.05);
   position: relative;
   z-index: 1;
-  animation: cardSlideUp 0.4s ease-out;
+  animation: cardIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes cardSlideUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .brand-section {
@@ -328,13 +362,18 @@ async function login() {
 }
 
 .logo-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   overflow: hidden;
-  margin: 0 auto 14px;
-  box-shadow: 0 6px 20px rgba(17, 80, 201, 0.2);
+  margin: 0 auto 16px;
+  box-shadow: 0 8px 28px rgba(17, 80, 201, 0.2);
   border: 3px solid #f0f4ff;
+  transition: transform 0.3s;
+}
+
+.logo-wrap:hover {
+  transform: scale(1.05);
 }
 
 .brand-logo {
@@ -345,16 +384,18 @@ async function login() {
 }
 
 .brand-name {
-  font: 900 1.8rem/1 'Cairo', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
   background: linear-gradient(135deg, #1150c9, #0d9488);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
 }
 
 .brand-tagline {
-  font: 400 0.8rem 'Tajawal', sans-serif;
+  font: 400 0.82rem/1 'Tajawal', sans-serif;
   color: #94a3b8;
   margin: 0;
 }
@@ -363,32 +404,34 @@ async function login() {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fecaca;
-  font: 500 0.8rem 'Tajawal', sans-serif;
-  margin-bottom: 14px;
-  animation: fadeIn 0.3s ease;
+  font: 600 0.8rem 'Tajawal', sans-serif;
+  margin-bottom: 16px;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+.field-err {
+  display: block;
+  font: 500 0.7rem 'Tajawal', sans-serif;
+  color: #dc2626;
+  margin-top: 4px;
+  padding-right: 4px;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .input-group label {
   display: block;
-  font: 600 0.78rem 'Cairo', sans-serif;
-  color: #475569;
-  margin-bottom: 5px;
+  font: 700 0.8rem 'Tajawal', sans-serif;
+  color: #334155;
+  margin-bottom: 6px;
 }
 
 .input-box {
@@ -397,24 +440,35 @@ async function login() {
   gap: 10px;
   background: #f8fafc;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 0 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
 }
 
 .input-box.active {
   border-color: #1150c9;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(17, 80, 201, 0.08);
+  box-shadow: 0 0 0 4px rgba(17, 80, 201, 0.08);
+}
+
+.input-box.error {
+  border-color: #dc2626;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.06);
 }
 
 .input-box svg {
   flex-shrink: 0;
   color: #94a3b8;
+  transition: color 0.25s;
 }
 
 .input-box.active svg {
   color: #1150c9;
+}
+
+.input-box.error svg {
+  color: #dc2626;
 }
 
 .input-box input {
@@ -422,9 +476,10 @@ async function login() {
   border: none;
   outline: none;
   background: none;
-  padding: 13px 0;
-  font: 500 0.9rem 'Tajawal', sans-serif;
+  padding: 14px 0;
+  font: 500 0.92rem 'Tajawal', sans-serif;
   color: #0f172a;
+  min-width: 0;
 }
 
 .input-box input::placeholder {
@@ -438,13 +493,15 @@ async function login() {
   border: none;
   cursor: pointer;
   color: #94a3b8;
-  padding: 4px;
-  border-radius: 6px;
-  transition: color 0.2s;
+  padding: 6px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
 }
 
 .toggle-vis:hover {
   color: #1150c9;
+  background: rgba(17, 80, 201, 0.06);
 }
 
 .remember-label {
@@ -453,8 +510,9 @@ async function login() {
   gap: 8px;
   cursor: pointer;
   user-select: none;
-  font: 500 0.8rem 'Tajawal', sans-serif;
+  font: 500 0.82rem 'Tajawal', sans-serif;
   color: #64748b;
+  margin-top: -4px;
 }
 
 .remember-cb {
@@ -465,10 +523,10 @@ async function login() {
 }
 
 .cb-custom {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border: 2px solid #cbd5e1;
-  border-radius: 5px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,29 +551,39 @@ async function login() {
 
 .btn-login {
   width: 100%;
-  padding: 13px;
+  padding: 15px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #1150c9, #0d9488);
   color: #fff;
-  font: 800 1rem/1 'Cairo', sans-serif;
+  font: 800 1.05rem/1 'Tajawal', sans-serif;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.2s;
-  margin-top: 2px;
+  transition: transform 0.2s, box-shadow 0.3s, opacity 0.2s;
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-login:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(17, 80, 201, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(17, 80, 201, 0.35);
 }
 
 .btn-login:active:not(:disabled) {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
 }
 
 .btn-login:disabled {
-  opacity: 0.6;
+  opacity: 0.65;
   cursor: not-allowed;
+}
+
+.btn-login.loading {
+  pointer-events: none;
+}
+
+.btn-text {
+  display: block;
 }
 
 .loading-row {
@@ -538,57 +606,64 @@ async function login() {
   to { transform: rotate(360deg); }
 }
 
-.copyright {
+.login-footer {
   text-align: center;
-  margin-top: 20px;
-  font: 400 0.68rem 'Tajawal', sans-serif;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.login-footer p {
+  font: 400 0.7rem 'Tajawal', sans-serif;
   color: #94a3b8;
+  margin: 0;
 }
 
 .shake-enter-active { animation: shake 0.4s ease; }
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(5px); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
   75% { transform: translateX(-3px); }
 }
 
 @media (max-width: 480px) {
   .login-page {
-    padding: 12px;
+    padding: 16px;
     align-items: center;
   }
   .login-card {
-    padding: 28px 20px;
-    border-radius: 16px;
+    padding: 32px 22px 24px;
+    border-radius: 20px;
   }
   .logo-wrap {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
   }
   .brand-name {
-    font-size: 1.5rem;
+    font-size: 1.7rem;
   }
   .brand-tagline {
-    font-size: 0.75rem;
+    font-size: 0.76rem;
   }
   .input-box input {
-    font-size: 0.85rem;
-    padding: 11px 0;
+    font-size: 0.88rem;
+    padding: 12px 0;
   }
   .btn-login {
-    padding: 12px;
-    font-size: 0.95rem;
+    padding: 13px;
+    font-size: 1rem;
   }
   .orb-1 { width: 200px; height: 200px; }
   .orb-2 { width: 160px; height: 160px; }
+  .orb-3 { width: 100px; height: 100px; }
 }
 
 @media (min-width: 768px) {
   .login-card {
     max-width: 400px;
-    padding: 40px 36px;
+    padding: 44px 40px 36px;
   }
 }
 </style>

@@ -16,7 +16,8 @@ import { initMessaging, requestNotificationPermission, listenForegroundMessages,
 const route = useRoute()
 const isPublicPage = computed(() => {
   const path = route.path
-  return (path === '/directory' || path === '/about' || path === '/contact' || path === '/bmi' || path === '/favorites') && !path.startsWith('/doctor/')
+  if (path.startsWith('/doctor/') || path.startsWith('/listing/')) return false
+  return (path === '/directory' || path === '/about' || path === '/contact' || path === '/bmi' || path === '/favorites' || path === '/bookings')
 })
 
 let unsubForeground = null

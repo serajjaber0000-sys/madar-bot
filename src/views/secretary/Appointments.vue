@@ -14,6 +14,10 @@
               <input v-model="searchQuery" type="text" placeholder="بحث بالاسم أو رقم الهاتف..." @input="onSearchInput" />
             </div>
             <div class="queue-launcher-group">
+              <router-link :to="`/clinic/${authStore.clinicId}/secretary/chats`" class="btn btn-teal btn-lg" style="text-decoration:none">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:6px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                محادثة المرضى
+              </router-link>
               <button class="btn btn-gold btn-lg" @click="openTodayQueue">حجوزات اليوم</button>
             </div>
           </div>
@@ -840,6 +844,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 10px; border: none; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; text-decoration: none; }
+.btn-lg { padding: 10px 22px; font-size: 0.88rem; }
+.btn-gold { background: #fef3c7; color: #92400e; }
+.btn-gold:hover { background: #fde68a; }
+.btn-teal { background: #0d9488; color: #fff; }
+.btn-teal:hover { background: #0f766e; box-shadow: 0 4px 12px rgba(13,148,136,0.3); }
 .pending-section { margin-bottom: 24px; background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fde68a; border-radius: 14px; padding: 16px; }
 .pending-header { display: flex; align-items: center; gap: 10px; font-size: 0.92rem; font-weight: 800; color: #92400e; margin-bottom: 14px; }
 .pending-list { display: flex; flex-direction: column; gap: 12px; }
