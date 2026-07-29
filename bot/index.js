@@ -802,9 +802,14 @@ bot.callbackQuery(/^dp:show:(.+)$/, async (ctx) => {
       scheduleText = 'غير محدد'
     }
     const namePrefix = p.facility_type === 'doctor' ? 'د. ' : ''
+    let doctorsBlock = ''
+    if (p.doctors_list && p.doctors_list.length) {
+      doctorsBlock = '\n👥 <b>الأطباء:</b>\n' + p.doctors_list.map((doc, i) => `   ${i + 1}. ${doc.name}${doc.specialty ? ` (${doc.specialty})` : ''}`).join('\n') + '\n\n'
+    }
     const msg =
       `<b>${ft} ${namePrefix}${p.doctor_name || '-'}</b>\n${DIV2}\n\n` +
       `🩺 <b>التخصص:</b> ${p.specialty || '-'}\n` +
+      `${doctorsBlock}` +
       `🏛️ <b>المحافظة:</b> ${p.governorate || '-'} — ${p.area || '-'}\n` +
       `📍 <b>العنوان:</b> ${p.address || '-'}\n\n` +
       `📱 <b>الهاتف:</b> ${p.phone || '-'}\n` +
@@ -1145,6 +1150,48 @@ bot.on('message:text', async (ctx) => {
       return ctx.reply('🏛️ اختر المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
     }
 
+    // ── MULTI-DOCTOR STEPS (specialized/laser) ──
+    if (s.step === 'dp_doc_count') {
+      const count = parseInt(text)
+      if (isNaN(count) || count < 0 || count > 50) return ctx.reply('❌ أرسل رقم صحيح بين 0 و 50')
+      s.data.doctor_count = count
+      if (count === 0) {
+        s.step = 'dp_gov'
+        const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+        return ctx.reply('🏛️ اختر المحافظة:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+      }
+      s.data.doctors_list = []
+      s.data.doctor_idx = 0
+      s.step = 'dp_doc_name'
+      return ctx.reply(`👨‍⚕️ <b>1/${count}</b> — اسم الطبيب أو المساعد الأول:`, { parse_mode: 'HTML', reply_markup: { remove_keyboard: true } })
+    }
+
+    if (s.step === 'dp_doc_name') {
+      const idx = s.data.doctor_idx || 0
+      const total = s.data.doctor_count || 1
+      if (!s.data.doctors_list[idx]) s.data.doctors_list[idx] = {}
+      s.data.doctors_list[idx].name = text
+      s.step = 'dp_doc_spec'
+      return ctx.reply(`👨‍⚕️ <b>${idx + 1}/${total}</b> — تخصص ${text}:\n\nاكتب التخصص أو - للتخطي:`, { parse_mode: 'HTML' })
+    }
+
+    if (s.step === 'dp_doc_spec') {
+      const idx = s.data.doctor_idx || 0
+      const total = s.data.doctor_count || 1
+      s.data.doctors_list[idx].specialty = text === '-' ? '' : text
+      const next = idx + 1
+      if (next < total) {
+        s.data.doctor_idx = next
+        s.step = 'dp_doc_name'
+        return ctx.reply(`👨‍⚕️ <b>${next + 1}/${total}</b> — اسم الطبيب أو المساعد التالي:`, { parse_mode: 'HTML' })
+      }
+      // All doctors collected, proceed to governorate
+      s.step = 'dp_gov'
+      s.data.doctor_name = s.data.doctors_list[0]?.name || s.data.doctor_name
+      const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
+      return ctx.reply(`✅ تم إضافة ${total} أطباء\n\n🏛️ اختر المحافظة:`, { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
+    }
+
     if (s.step === 'dp_gov') { if (!GOVS.includes(text)) return ctx.reply('❌ اختر من القائمة')
       s.data.governorate = text; s.step = 'dp_area'
       const areas = AREAS[text] || ['أخرى']
@@ -1305,6 +1352,14 @@ bot.callbackQuery(/^dp:sub:(.+)$/, async (ctx) => {
   const subType = ctx.match[1]
   s.data.subtype = subType === 'أخرى' ? '' : subType
   s.data.specialty = s.data.subtype || s.data.facility_type
+
+  // For specialized & laser: ask for number of doctors/assistants
+  if (s.data.facility_type === 'specialized' || s.data.facility_type === 'laser') {
+    s.step = 'dp_doc_count'
+    s.data.doctors_list = []
+    return edit(ctx, `✅ ${subType}\n\n👥 كم عدد الأطباء/المساعدين في المنشأة؟\n${DIV2}\n\nأرسل الرقم (0 إن لم يوجد):`, { parse_mode: 'HTML' })
+  }
+
   s.step = 'dp_gov'
   const rows = []; for (let i = 0; i < GOVS.length; i += 3) rows.push(GOVS.slice(i, i + 3))
   await edit(ctx, `✅ ${subType}\n\n🏛️ اختر المحافظة:`, { parse_mode: 'HTML' })
@@ -1340,6 +1395,8 @@ async function saveDoctorProfile(ctx, s) {
       facility_type: d.facility_type || 'doctor',
       doctor_name: d.doctor_name || '',
       specialty: d.specialty || '',
+      doctors_list: d.doctors_list || [],
+      doctor_count: d.doctor_count || 0,
       governorate: d.governorate || '',
       area: d.area || '',
       phone: d.phone || '',
@@ -1370,10 +1427,16 @@ async function saveDoctorProfile(ctx, s) {
     const loc = [d.governorate, d.area].filter(Boolean).join(' - ') || '-'
     const sched = d.is_24h ? 'يعمل 24 ساعة' : (d.timeFrom && d.timeTo ? `${d.timeFrom} - ${d.timeTo}` : '-')
 
+    let doctorsText = ''
+    if (d.doctors_list && d.doctors_list.length) {
+      doctorsText = '\n👥 <b>الأطباء:</b>\n' + d.doctors_list.map((doc, i) => `   ${i + 1}. ${doc.name}${doc.specialty ? ` (${doc.specialty})` : ''}`).join('\n') + '\n'
+    }
+
     await ctx.reply(
       `✅ <b>تمت الإضافة بنجاح!</b>\n${DIV2}\n\n` +
       `${ft} <b>${d.doctor_name}</b>\n` +
       `🩺 ${d.specialty || '-'}\n` +
+      `${doctorsText}` +
       `🏛️ ${loc}\n` +
       `📱 ${d.phone || '-'}\n` +
       `⏰ ${sched}\n\n` +
