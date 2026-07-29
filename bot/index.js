@@ -66,10 +66,10 @@ async function getRole(ctx) {
 
 function founderOrAdmin(ctx) { const r = store[ctx.chat.id]?.role; return r === 'admin' || r === 'founder' }
 
-const SPECS = ['طب عام', 'أسنان', 'باطنية', 'قلب', 'عظام', 'أطفال', 'جلدية', 'نساء وتوليد', 'عيون', 'أنف وأذن', 'مسالك بولية', 'عصبية', 'جراحة عامة', 'علاج طبيعي', 'أنسجة وعظم', 'أخرى']
+const SPECS = ['طب عام', 'أسنان', 'باطنية', 'قلب', 'عظام', 'أطفال', 'جلدية', 'نساء وتوليد', 'عيون', 'أنف وأذن', 'مسالك بولية', 'عصبية', 'جراحة عامة', 'علاج طبيعي', 'أنسجة وعظم', 'ليزر وتجميل', 'جلسات تجميل', 'جلدية وتجميل', 'أخرى']
 const GOVS = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'القادسية', 'بابل', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار', 'دهوك', 'السليمانية', 'ميسان', 'ذي قار', 'واسط', 'المثنى', 'حلبجة']
 const PLANS = { basic: 'الأساسية', premium: 'المتقدمة', enterprise: 'المؤسسات' }
-const FACILITY_TYPES = { doctor: '🩺 طبيب', pharmacy: '💊 صيدلية', hospital: '🏥 مستشفى', lab: '🔬 مختبر', physio: '🦴 علاج طبيعي' }
+const FACILITY_TYPES = { doctor: '🩺 طبيب', specialized: '🏛️ عيادة تخصصية', laser: '✨ ليزر وتجميل', pharmacy: '💊 صيدلية', hospital: '🏥 مستشفى', lab: '🔬 مختبر', physio: '🦴 علاج طبيعي' }
 const SCHEDULE_DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة']
 
 const AREAS = {
@@ -625,7 +625,7 @@ bot.callbackQuery('dp:list', async (ctx) => {
         ...clinicSnap.docs.filter(d => d.data().status === 'active').map(d => ({ _type: 'clinic', id: d.id, data: () => d.data() })),
         ...dirSnap.docs.map(d => ({ _type: 'listing', id: d.id, data: () => d.data() }))
       ]
-      const counts = { all: allDocs.length, doctor: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
+      const counts = { all: allDocs.length, doctor: 0, specialized: 0, laser: 0, pharmacy: 0, hospital: 0, lab: 0, physio: 0 }
       allDocs.forEach(d => {
         const p = d.data()
         let ft = 'doctor'
@@ -635,6 +635,8 @@ bot.callbackQuery('dp:list', async (ctx) => {
       const kb = new InlineKeyboard()
         .text(`📋 الكل (${counts.all})`, 'dp:cat:all').row()
         .text(`🩺 أطباء (${counts.doctor})`, 'dp:cat:doctor')
+        .text(`🏛️ عيادات تخصصية (${counts.specialized})`, 'dp:cat:specialized').row()
+        .text(`✨ ليزر وتجميل (${counts.laser})`, 'dp:cat:laser')
         .text(`💊 صيدليات (${counts.pharmacy})`, 'dp:cat:pharmacy').row()
         .text(`🏥 مستشفيات (${counts.hospital})`, 'dp:cat:hospital')
         .text(`🔬 مختبرات (${counts.lab})`, 'dp:cat:lab').row()
@@ -647,7 +649,7 @@ bot.callbackQuery('dp:list', async (ctx) => {
 })
 
 function buildCategoryList(docs, filter, clinicDocs = [], profileDocs = []) {
-  const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطباء', pharmacy: '💊 صيدليات', hospital: '🏥 مستشفيات', lab: '🔬 مختبرات', physio: '🦴 علاج طبيعي' }
+  const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطباء', specialized: '🏛️ عيادات تخصصية', laser: '✨ ليزر وتجميل', pharmacy: '💊 صيدليات', hospital: '🏥 مستشفيات', lab: '🔬 مختبرات', physio: '🦴 علاج طبيعي' }
 
   const items = []
 
@@ -699,6 +701,7 @@ function buildCategoryList(docs, filter, clinicDocs = [], profileDocs = []) {
   }
   const catBtns = [
     [{ text: `📋 الكل`, data: 'dp:cat:all' }, { text: `🩺 أطباء`, data: 'dp:cat:doctor' }],
+    [{ text: `🏛️ عيادات تخصصية`, data: 'dp:cat:specialized' }, { text: `✨ ليزر وتجميل`, data: 'dp:cat:laser' }],
     [{ text: `💊 صيدليات`, data: 'dp:cat:pharmacy' }, { text: `🏥 مستشفيات`, data: 'dp:cat:hospital' }],
     [{ text: `🔬 مختبرات`, data: 'dp:cat:lab' }, { text: `🦴 علاج طبيعي`, data: 'dp:cat:physio' }]
   ]
@@ -720,7 +723,7 @@ bot.callbackQuery(/^dp:cat:(.+)$/, async (ctx) => {
         const p = d.data()
         return { type: 'listing', id: d.id, name: p.doctor_name || '-', specialty: p.specialty || '-', ft: p.facility_type || 'doctor', enabled: p.enabled, is24h: p.is_24h }
       }).filter(item => filter === 'all' || item.ft === filter)
-      const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطبائي', pharmacy: '💊 صيدلياتي', hospital: '🏥 مستشفياتي', lab: '🔬 مختبراتي', physio: '🦴 علاجي الطبيعي' }
+      const CAT_LABELS = { all: 'الكل', doctor: '🩺 أطبائي', specialized: '🏛️ عياداتي التخصصية', laser: '✨ الليزر والتجميل', pharmacy: '💊 صيدلياتي', hospital: '🏥 مستشفياتي', lab: '🔬 مختبراتي', physio: '🦴 علاجي الطبيعي' }
       const label = CAT_LABELS[filter] || 'الكل'
       const msgLines = [`<b>${label}</b> — ${items.length}\n${DIV}\n`]
       const kb = new InlineKeyboard()
@@ -1094,7 +1097,7 @@ bot.on('message:text', async (ctx) => {
         return ctx.reply('🩺 اختر التخصص:', { parse_mode: 'HTML', reply_markup: { keyboard: rows.map(r => r.map(t => ({ text: t }))), one_time: true, resize_keyboard: true } })
       } else {
         s.step = 'dp_subtype'
-        const subtypes = { pharmacy: ['صيدلية عامة', 'صيدلية مستشفى'], hospital: ['مستشفى حكومي', 'مستشفى خاص', 'عيادة'], lab: ['مختبر حكومي', 'مختبر خاص'], physio: ['مركز علاج طبيعي', 'عيادة علاج طبيعي'] }
+        const subtypes = { pharmacy: ['صيدلية عامة', 'صيدلية مستشفى'], hospital: ['مستشفى حكومي', 'مستشفى خاص', 'عيادة'], lab: ['مختبر حكومي', 'مختبر خاص'], physio: ['مركز علاج طبيعي', 'عيادة علاج طبيعي'], laser: ['مركز ليزر', 'عيادة تجميل', 'مركز تجميل'], specialized: ['مجمع طبي', 'مركز تخصصي', 'عيادة'] }
         const options = subtypes[s.data.facility_type] || ['أخرى']
         const kb = new InlineKeyboard()
         options.forEach(opt => kb.text(opt, `dp:sub:${opt}`).row())

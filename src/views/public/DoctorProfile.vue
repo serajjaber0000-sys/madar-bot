@@ -407,6 +407,33 @@
           <div v-else class="dp-empty-state">
             <p>لم تُحدّد أوقات الدوام بعد</p>
           </div>
+          <!-- Other doctors in this clinic -->
+          <div v-if="doctorsList.length > 1" class="dp-card dp-card-full" style="margin-top:12px">
+            <div class="dp-card-header">
+              <div class="dp-card-icon" style="background:#ede9fe;color:#7c3aed">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="8.5" cy="7" r="4"/>
+                  <path d="M20 8v6M23 11h-6"/>
+                </svg>
+              </div>
+              <h3>أطباء العيادة ({{ doctorsList.length }})</h3>
+            </div>
+            <div class="dp-doctors-list">
+              <div v-for="(doc, i) in doctorsList" :key="doc.id" class="dp-doctor-row" :class="{ 'dp-doctor-row--active': i === 0 }">
+                <div class="dp-doctor-row-avatar" :style="{ background: getSpecialtyColor(doc.specialty) }">
+                  {{ initials(doc.doctor_name) }}
+                </div>
+                <div class="dp-doctor-row-info">
+                  <span class="dp-doctor-row-name">د. {{ doc.doctor_name || 'طبيب' }}</span>
+                  <span class="dp-doctor-row-spec">{{ doc.specialty || 'طبيب عام' }}</span>
+                </div>
+                <svg v-if="i === 0" viewBox="0 0 24 24" width="18" height="18" fill="#0d9488" stroke="none">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -699,6 +726,7 @@ const clinicId = computed(() => route.params.clinicId)
 // State
 const loading = ref(true)
 const profile = ref(null)
+const doctorsList = ref([])
 const reviews = ref([])
 const similarDoctors = ref([])
 const activeTab = ref('about')
@@ -1033,7 +1061,9 @@ async function loadProfile() {
     const q = query(collection(db, 'doctor_profiles'), where('clinicId', '==', clinicId.value))
     unsubProfile = onSnapshot(q, async (snap) => {
       if (!snap.empty) {
-        profile.value = { id: snap.docs[0].id, ...snap.docs[0].data() }
+        const all = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        profile.value = all[0]
+        doctorsList.value = all
         if (!viewCounted) {
           viewCounted = true
           doctorProfilesRepo.incrementView(clinicId.value).catch(e => console.error('incrementView error:', e))
@@ -1042,6 +1072,7 @@ async function loadProfile() {
         loadSimilarDoctors()
       } else {
         profile.value = null
+        doctorsList.value = []
       }
       loading.value = false
     }, (error) => {
@@ -1597,4 +1628,11 @@ onUnmounted(() => {
   .dp-similar-card:hover { transform: none; }
   .dp-action-btn:hover { transform: none; }
 }
+.dp-doctors-list{display:flex;flex-direction:column;gap:4px}
+.dp-doctor-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:#f8fafc;transition:.15s}
+.dp-doctor-row--active{background:#f0fdfa;border:1px solid #d1fae5}
+.dp-doctor-row-avatar{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:.85rem;flex-shrink:0}
+.dp-doctor-row-info{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.dp-doctor-row-name{font-weight:700;font-size:.85rem;color:#0f172a}
+.dp-doctor-row-spec{font-size:.72rem;color:#64748b}
 </style>

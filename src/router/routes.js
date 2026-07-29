@@ -15,6 +15,7 @@ const routes = [
   { path: '/maintenance', component: () => import('../views/MaintenancePage.vue'), meta: { public: true, title: 'صيانة — مدار' } },
   { path: '/patient/:clinicId/:patientId', component: () => import('../views/shared/PatientPublic.vue'), meta: { public: true, title: SITE_TITLE } },
   { path: '/promoter', component: () => import('../views/public/PromoterPage.vue'), meta: { public: true, title: 'شرح النظام للمروجين — مدار' } },
+  { path: '/privacy', component: () => import('../views/public/PrivacyPolicy.vue'), meta: { public: true, title: 'سياسة الخصوصية — مدار' } },
 
   // Super Admin
   { path: '/super-admin', redirect: '/super-admin/dashboard', meta: { requiresAuth: true, role: 'super_admin' } },

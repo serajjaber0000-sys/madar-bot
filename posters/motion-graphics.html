@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>مدار — نظام إدارة العيادات</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Tajawal',sans-serif;background:#000;overflow:hidden;width:1920px;height:1080px}
+
+canvas#bg{position:fixed;inset:0;z-index:0}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;z-index:10}
+.vignette{position:fixed;inset:0;z-index:50;pointer-events:none;background:radial-gradient(ellipse at center,transparent 35%,rgba(0,0,0,0.6) 100%)}
+.grain{position:fixed;inset:0;z-index:51;pointer-events:none;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.flash{position:fixed;inset:0;background:#fff;z-index:200;opacity:0;pointer-events:none}
+.flash.on{animation:flashGo 0.2s ease}
+@keyframes flashGo{0%{opacity:0.5}100%{opacity:0}}
+
+.progress-wrap{position:fixed;bottom:0;left:0;right:0;height:2px;z-index:100;background:rgba(255,255,255,0.02)}
+.progress-bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);width:0;transition:width 0.05s linear}
+.time{position:fixed;top:24px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:700;color:rgba(255,255,255,0.1);z-index:100;font-family:monospace;letter-spacing:4px}
+
+/* ============ TEXT ANIMATIONS ============ */
+.reveal{opacity:0;transform:translateY(40px);transition:none}
+.reveal.on{animation:revealUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards}
+@keyframes revealUp{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:translateY(0)}}
+
+.reveal-down{opacity:0;transform:translateY(-40px);transition:none}
+.reveal-down.on{animation:revealDown 0.7s cubic-bezier(0.16,1,0.3,1) forwards}
+@keyframes revealDown{0%{opacity:0;transform:translateY(-40px)}100%{opacity:1;transform:translateY(0)}}
+
+.scale-in{opacity:0;transform:scale(0.5);transition:none}
+.scale-in.on{animation:scaleIn 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes scaleIn{0%{opacity:0;transform:scale(0.5)}100%{opacity:1;transform:scale(1)}}
+
+.fade-in{opacity:0;transition:none}
+.fade-in.on{animation:fadeIn 0.5s ease forwards}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+
+.slide-right{opacity:0;transform:translateX(-60px);transition:none}
+.slide-right.on{animation:slideRight 0.6s cubic-bezier(0.16,1,0.3,1) forwards}
+@keyframes slideRight{0%{opacity:0;transform:translateX(-60px)}100%{opacity:1;transform:translateX(0)}}
+
+.slide-left{opacity:0;transform:translateX(60px);transition:none}
+.slide-left.on{animation:slideLeft 0.6s cubic-bezier(0.16,1,0.3,1) forwards}
+@keyframes slideLeft{0%{opacity:0;transform:translateX(60px)}100%{opacity:1;transform:translateX(0)}}
+
+/* Typewriter */
+.typewriter{overflow:hidden;white-space:nowrap;border-left:3px solid #8b5cf6;padding-left:12px;opacity:0;width:0}
+.typewriter.on{animation:typeWrite 1.5s steps(30,end) forwards,cursorBlink 0.8s step-end infinite}
+@keyframes typeWrite{0%{width:0;opacity:1}100%{width:100%;opacity:1}}
+@keyframes cursorBlink{50%{border-color:transparent}}
+
+/* Glitch */
+.glitch{position:relative;opacity:0}
+.glitch.on{animation:glitchIn 0.6s ease forwards}
+@keyframes glitchIn{
+  0%{opacity:0;transform:translateX(10px)}
+  10%{opacity:1;transform:translateX(-5px);filter:hue-rotate(90deg)}
+  20%{transform:translateX(3px);filter:hue-rotate(0)}
+  30%{transform:translateX(-2px)}
+  100%{opacity:1;transform:translateX(0);filter:hue-rotate(0)}
+}
+
+/* Word by word */
+.word-line{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.word-line .w{opacity:0;transform:translateY(20px);display:inline-block}
+.word-line .w.on{animation:wordPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards}
+@keyframes wordPop{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+
+/* Line draw */
+.line-draw{height:3px;background:linear-gradient(90deg,transparent,#8b5cf6,transparent);width:0;border-radius:2px;transition:none}
+.line-draw.on{animation:lineGrow 0.6s ease forwards}
+@keyframes lineGrow{0%{width:0}100%{width:200px}}
+
+/* Number count */
+.count-up{display:inline-block}
+
+/* ============ SCENE STYLES ============ */
+.big-text{font-size:80px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1.2;text-align:center}
+.mid-text{font-size:48px;font-weight:800;color:#fff;text-align:center}
+.small-text{font-size:28px;font-weight:600;color:rgba(255,255,255,0.4);text-align:center}
+.accent{color:#8b5cf6}
+.green{color:#10b981}
+.gold{color:#fbbf24}
+.red{color:#ef4444}
+
+/* ============ S1: OPENING ============ */
+.s1 .line1{font-size:36px;font-weight:300;color:rgba(255,255,255,0.4);letter-spacing:4px;margin-bottom:16px}
+.s1 .line2{font-size:96px;font-weight:900;color:#fff;letter-spacing:-3px}
+.s1 .line3{font-size:24px;font-weight:600;color:rgba(255,255,255,0.2);letter-spacing:2px;margin-top:12px}
+
+/* ============ S2: PROBLEM ============ */
+.s2 .problem-line{font-size:56px;font-weight:900;color:#fff;margin-bottom:20px;opacity:0}
+.s2 .problem-line.on{animation:revealUp 0.6s ease forwards}
+.s2 .problem-sub{font-size:28px;font-weight:600;color:rgba(255,255,255,0.25);opacity:0}
+.s2 .problem-sub.on{animation:revealUp 0.5s ease 0.3s forwards}
+
+/* ============ S3: SOLUTION ============ */
+.s3 .sol-badge{font-size:16px;font-weight:800;color:#8b5cf6;letter-spacing:6px;text-transform:uppercase;margin-bottom:20px}
+.s3 .sol-name{font-size:120px;font-weight:900;color:#fff;letter-spacing:-4px}
+.s3 .sol-sub{font-size:22px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:6px;margin-top:8px}
+
+/* ============ S4: FEATURES ============ */
+.s4 .feat-line{font-size:64px;font-weight:900;color:#fff;margin-bottom:12px}
+.s4 .feat-desc{font-size:26px;font-weight:500;color:rgba(255,255,255,0.3);margin-bottom:40px}
+
+/* ============ S5: DASHBOARD ============ */
+.s5 .dash-title{font-size:72px;font-weight:900;color:#fff;margin-bottom:8px}
+.s5 .dash-sub{font-size:24px;font-weight:500;color:rgba(255,255,255,0.25);margin-bottom:40px}
+.s5 .dash-features{display:flex;gap:40px;flex-wrap:wrap;justify-content:center}
+.s5 .dash-feat{opacity:0;transform:translateY(20px)}
+.s5 .dash-feat.on{animation:revealUp 0.5s ease forwards}
+.s5 .dash-feat-label{font-size:20px;font-weight:800;color:#8b5cf6;margin-bottom:4px}
+.s5 .dash-feat-text{font-size:16px;font-weight:500;color:rgba(255,255,255,0.3)}
+
+/* ============ S6: PRICING ============ */
+.s6 .price-title{font-size:56px;font-weight:900;color:#fff;margin-bottom:40px}
+.s6 .price-cards{display:flex;gap:24px}
+.s6 .price-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:20px;padding:36px 32px;text-align:center;width:300px;opacity:0;transform:translateY(30px)}
+.s6 .price-card.on{animation:revealUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards}
+.s6 .price-card:nth-child(2).on{animation-delay:0.15s}
+.s6 .price-card:nth-child(3).on{animation-delay:0.3s}
+
+.s6 .price-card.featured{border-color:rgba(139,92,246,0.2);background:rgba(139,92,246,0.04)}
+.s6 .price-card.featured::before{content:'الأكثر طلباً';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:11px;font-weight:800;padding:4px 16px;border-radius:20px;letter-spacing:1px}
+
+.s6 .pc-name{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px}
+.s6 .pc-price{font-size:48px;font-weight:900;color:#fff;margin-bottom:4px}
+.s6 .pc-price .currency{font-size:20px;font-weight:700;color:rgba(255,255,255,0.3)}
+.s6 .pc-period{font-size:14px;font-weight:600;color:rgba(255,255,255,0.2);margin-bottom:20px}
+.s6 .pc-features{list-style:none;text-align:right}
+.s6 .pc-features li{font-size:14px;font-weight:600;color:rgba(255,255,255,0.35);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;gap:8px}
+.s6 .pc-features li::before{content:'✓';color:#10b981;font-weight:900}
+
+.s6 .price-note{margin-top:30px;font-size:18px;font-weight:600;color:rgba(255,255,255,0.2)}
+.s6 .price-note .free{color:#10b981;font-weight:900}
+
+/* ============ S7: CTA ============ */
+.s7 .cta-big{font-size:80px;font-weight:900;color:#fff;letter-spacing:-2px;margin-bottom:12px}
+.s7 .cta-url{font-size:32px;font-weight:800;color:#8b5cf6;letter-spacing:2px;margin-bottom:24px}
+.s7 .cta-btn{background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:22px;font-weight:900;padding:18px 56px;border-radius:16px;box-shadow:0 12px 50px rgba(139,92,246,0.3)}
+.s7 .cta-sub{margin-top:16px;font-size:16px;font-weight:600;color:rgba(255,255,255,0.2)}
+
+/* Rings */
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(139,92,246,0.06);top:50%;left:50%;transform:translate(-50%,-50%) scale(0);pointer-events:none}
+.ring.on{animation:ringPulse 2.5s ease infinite}
+@keyframes ringPulse{0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.3}100%{transform:translate(-50%,-50%) scale(1.2);opacity:0}}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="flash" id="flash"></div>
+<div class="time" id="time">00:00</div>
+<div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+<!-- S1: OPENING -->
+<div class="scene s1" id="s1">
+  <div class="line1 reveal" id="s1-1">نظام إدارة العيادات</div>
+  <div class="line2 glitch" id="s1-2">مدار</div>
+  <div class="line3 reveal-down" id="s1-3">الحل الكامل لإدارة عيادتك</div>
+  <div class="line-draw" id="s1-line" style="margin-top:20px"></div>
+</div>
+
+<!-- S2: PROBLEM -->
+<div class="scene s2" id="s2">
+  <div class="problem-line" id="s2-1">هل تعاني من</div>
+  <div class="problem-line" id="s2-2" style="font-size:64px">ضياع المواعيد؟</div>
+  <div class="problem-line" id="s2-3" style="font-size:64px">تبعثر الفواتير؟</div>
+  <div class="problem-line" id="s2-4" style="font-size:64px">ضياع الوقت؟</div>
+  <div class="problem-sub" id="s2-5">كل يوم نفس المشاكل... لين متى؟</div>
+</div>
+
+<!-- S3: SOLUTION -->
+<div class="scene s3" id="s3">
+  <div class="sol-badge reveal" id="s3-1">الحل</div>
+  <div class="sol-name glitch" id="s3-2">مدار</div>
+  <div class="sol-sub reveal-down" id="s3-3">نظام واحد يحل كل مشاكلك</div>
+  <div class="line-draw" id="s3-line" style="margin-top:20px"></div>
+</div>
+
+<!-- S4: FEATURES WORD BY WORD -->
+<div class="scene s4" id="s4">
+  <div id="s4-content"></div>
+</div>
+
+<!-- S5: DASHBOARD -->
+<div class="scene s5" id="s5">
+  <div class="dash-title scale-in" id="s5-1">لوحة تحكم متكاملة</div>
+  <div class="dash-sub fade-in" id="s5-2">كل شي بعين وحدة</div>
+  <div class="dash-features">
+    <div class="dash-feat" id="s5-f1"><div class="dash-feat-label">المرضى</div><div class="dash-feat-text">ملفات شاملة لكل مريض</div></div>
+    <div class="dash-feat" id="s5-f2"><div class="dash-feat-label">المواعيد</div><div class="dash-feat-text">حجز وإدارة ذكية</div></div>
+    <div class="dash-feat" id="s5-f3"><div class="dash-feat-label">الفواتير</div><div class="dash-feat-text">تتبع المدفوعات</div></div>
+    <div class="dash-feat" id="s5-f4"><div class="dash-feat-label">التقارير</div><div class="dash-feat-text">رؤية واضحة لأرباحك</div></div>
+    <div class="dash-feat" id="s5-f5"><div class="dash-feat-label">الشات</div><div class="dash-feat-text">تواصل مباشر مع المرضى</div></div>
+    <div class="dash-feat" id="s5-f6"><div class="dash-feat-label">السجل الطبي</div><div class="dash-feat-text">توثيق كل وصفة</div></div>
+  </div>
+</div>
+
+<!-- S6: PRICING -->
+<div class="scene s6" id="s6">
+  <div class="price-title glitch" id="s6-1">اشتراك تنافسي</div>
+  <div class="price-cards">
+    <div class="price-card" id="s6-c1">
+      <div class="pc-name">الأساسي</div>
+      <div class="pc-price"><span class="count-up" data-target="30000">0</span> <span class="currency">د.ع</span></div>
+      <div class="pc-period">شهرياً</div>
+      <ul class="pc-features">
+        <li>لوحة تحكم 기본ية</li>
+        <li>إدارة المرضى</li>
+        <li>المواعيد</li>
+        <li>الفواتير</li>
+      </ul>
+    </div>
+    <div class="price-card featured" id="s6-c2">
+      <div class="pc-name">الاحترافي</div>
+      <div class="pc-price"><span class="count-up" data-target="50000">0</span> <span class="currency">د.ع</span></div>
+      <div class="pc-period">شهرياً</div>
+      <ul class="pc-features">
+        <li>كل مميزات الأساسي</li>
+        <li>شات المرضى</li>
+        <li>التقارير الذكية</li>
+        <li>السجل الطبي</li>
+        <li>تذكيرات تلقائية</li>
+      </ul>
+    </div>
+    <div class="price-card" id="s6-c3">
+      <div class="pc-name">المتقدم</div>
+      <div class="pc-price"><span class="count-up" data-target="80000">0</span> <span class="currency">د.ع</span></div>
+      <div class="pc-period">شهرياً</div>
+      <ul class="pc-features">
+        <li>كل مميزات الاحترافي</li>
+        <li>فروع متعددة</li>
+        <li>تقارير متقدمة</li>
+        <li>دعم فني أولوية</li>
+        <li>تخصيص كامل</li>
+      </ul>
+    </div>
+  </div>
+  <div class="price-note fade-in" id="s6-note">تجربة مجانية <span class="free">14 يوم</span> — بدون بطاقة ائتمان</div>
+</div>
+
+<!-- S7: CTA -->
+<div class="scene s7" id="s7">
+  <div class="ring r1" id="s7-r1" style="width:300px;height:300px"></div>
+  <div class="ring r2" id="s7-r2" style="width:500px;height:500px"></div>
+  <div class="ring r3" id="s7-r3" style="width:700px;height:700px"></div>
+  <div class="cta-big scale-in" id="s7-1">دار عيادتك مع مدار</div>
+  <div class="cta-url reveal" id="s7-2">www.asaasedu.com</div>
+  <div class="cta-btn reveal" id="s7-3">سجّل الآن مجاناً</div>
+  <div class="cta-sub fade-in" id="s7-4">صحتك تبدأ من هنا</div>
+</div>
+
+<script>
+// ============ PARTICLES ============
+const cvs=document.getElementById('bg'),ctx=cvs.getContext('2d');
+cvs.width=1920;cvs.height=1080;
+const pts=[];
+for(let i=0;i<50;i++)pts.push({x:Math.random()*1920,y:Math.random()*1080,vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.15,r:Math.random()*1+0.3,a:Math.random()*0.08+0.02});
+function drawBg(){ctx.clearRect(0,0,1920,1080);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=1920;if(p.x>1920)p.x=0;if(p.y<0)p.y=1080;if(p.y>1080)p.y=0;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(139,92,246,${p.a})`;ctx.fill()});for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(139,92,246,${0.015*(1-d/130)})`;ctx.stroke()}}requestAnimationFrame(drawBg)}
+drawBg();
+
+// ============ ENGINE ============
+const TOTAL=40000;
+const SCENES=[
+  {id:'s1',start:0,end:5000},
+  {id:'s2',start:5000,end:12000},
+  {id:'s3',start:12000,end:16000},
+  {id:'s4',start:16000,end:24000},
+  {id:'s5',start:24000,end:30000},
+  {id:'s6',start:30000,end:37000},
+  {id:'s7',start:37000,end:40000}
+];
+
+let t0=null,cur='';
+function $(id){return document.getElementById(id)}
+function show(id,d=0){setTimeout(()=>{const e=$(id);if(e)e.classList.add('on')},d)}
+function hide(id){const e=$(id);if(e)e.classList.remove('on')}
+function reset(s){const el=$(s);if(el)el.querySelectorAll('.on').forEach(e=>e.classList.remove('on'))}
+function flash(){const f=$('flash');f.classList.remove('on');void f.offsetWidth;f.classList.add('on')}
+
+// Counter animation
+function animateCounters(container){
+  (container||document).querySelectorAll('.count-up').forEach(c=>{
+    const target=parseInt(c.dataset.target);if(!target)return;
+    const dur=1200,start=performance.now();
+    function tick(now){const p=Math.min((now-start)/dur,1);const e=1-Math.pow(1-p,3);c.textContent=Math.floor(target*e).toLocaleString();if(p<1)requestAnimationFrame(tick)}
+    requestAnimationFrame(tick);
+  });
+}
+
+// Word-by-word feature builder
+const FEATURES=[
+  {title:'病人的 ملفات شاملة',desc:'كل معلومات المريض في مكان واحد'},
+  {title:'المواعيد الذكية',desc:'المرضى يحجزون من جوالهم'},
+  {title:'الفواتير التلقائية',desc:'تابع مدفوعاتك بدقة'},
+  {title:'شات مباشر',desc:'تواصل مع مرضاتك فوراً'},
+  {title:'التقارير الذكية',desc:'اعرف وين فلوسك بالضبط'}
+];
+let featTimer=null,featIdx=0;
+
+function buildFeatureWords(){
+  const container=$('s4-content');
+  container.innerHTML='';
+  FEATURES.forEach((f,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText='text-align:center;position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:translateY(30px);transition:none';
+    div.id='s4-feat-'+i;
+
+    const num=document.createElement('div');
+    num.style.cssText='font-size:16px;font-weight:800;color:#8b5cf6;letter-spacing:4px;margin-bottom:12px';
+    num.textContent=`0${i+1}`;
+    div.appendChild(num);
+
+    const title=document.createElement('div');
+    title.className='word-line';
+    title.style.cssText='font-size:72px;font-weight:900;color:#fff;margin-bottom:12px';
+    f.title.split(' ').forEach((w,wi)=>{
+      const span=document.createElement('span');
+      span.className='w';
+      span.textContent=w;
+      span.style.transitionDelay=(wi*0.1)+'s';
+      title.appendChild(span);
+    });
+    div.appendChild(title);
+
+    const desc=document.createElement('div');
+    desc.style.cssText='font-size:24px;font-weight:500;color:rgba(255,255,255,0.3)';
+    desc.textContent=f.desc;
+    div.appendChild(desc);
+
+    container.appendChild(div);
+  });
+}
+buildFeatureWords();
+
+function showFeature(idx){
+  FEATURES.forEach((_,i)=>{
+    const el=$('s4-feat-'+i);
+    if(!el)return;
+    if(i===idx){
+      el.style.opacity='1';el.style.transform='translateY(0)';
+      el.querySelectorAll('.w').forEach(w=>w.classList.add('on'));
+    } else {
+      el.style.opacity='0';el.style.transform='translateY(30px)';
+      el.querySelectorAll('.w').forEach(w=>w.classList.remove('on'));
+    }
+  });
+}
+
+function activate(s){
+  document.querySelectorAll('.scene').forEach(s=>s.style.opacity='0');
+  $(s).style.opacity='1';
+
+  switch(s){
+    case's1':
+      show('s1-1',300);show('s1-2',800);show('s1-3',1400);show('s1-line',1800);
+      break;
+    case's2':
+      show('s2-1',200);show('s2-2',800);show('s2-3',2000);show('s2-4',3200);show('s2-5',4500);
+      break;
+    case's3':
+      show('s3-1',200);show('s3-2',600);show('s3-3',1200);show('s3-line',1600);
+      break;
+    case's4':
+      featIdx=0;showFeature(0);
+      featTimer=setInterval(()=>{featIdx++;if(featIdx>=FEATURES.length){clearInterval(featTimer);return}showFeature(featIdx)},1500);
+      break;
+    case's5':
+      show('s5-1',200);show('s5-2',600);
+      for(let i=1;i<=6;i++)show('s5-f'+i,800+i*120);
+      break;
+    case's6':
+      show('s6-1',200);
+      show('s6-c1',600);show('s6-c2',800);show('s6-c3',1000);
+      show('s6-note',1500);
+      animateCounters($('s6'));
+      break;
+    case's7':
+      show('s7-r1',0);show('s7-r2',300);show('s7-r3',600);
+      show('s7-1',400);show('s7-2',800);show('s7-3',1200);show('s7-4',1600);
+      break;
+  }
+}
+
+function tick(ts){
+  if(!t0)t0=ts;
+  const el=ts-t0,p=Math.min(el/TOTAL,1);
+  $('progressBar').style.width=(p*100)+'%';
+  const s=Math.floor(el/1000)%60,m=Math.floor(el/60000);
+  $('time').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  for(const sc of SCENES){
+    if(el>=sc.start&&el<sc.end){
+      if(cur!==sc.id){
+        if(featTimer)clearInterval(featTimer);
+        cur=sc.id;
+        if(sc.id!=='s1')flash();
+        activate(sc.id);
+      }
+      break;
+    }
+  }
+
+  if(el>=TOTAL){
+    SCENES.forEach(s=>reset(s.id));cur='';t0=ts;
+    if(featTimer)clearInterval(featTimer);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+document.addEventListener('keydown',e=>{
+  if(e.key===' '){e.preventDefault()}
+  if(e.key==='r'){t0=performance.now();cur='';SCENES.forEach(s=>reset(s.id));if(featTimer)clearInterval(featTimer)}
+});
+</script>
+</body>
+</html>

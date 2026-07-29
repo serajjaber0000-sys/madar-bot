@@ -1,43 +1,67 @@
 <template>
   <div class="sw-root">
-  <!-- ============ SPLASH OVERLAY ============ -->
-  <div v-if="splashVisible" class="sw" :class="{ 'sw-fade': splashFading }">
-    <div class="sw-bg">
-      <div class="sw-orb sw-orb-1"></div>
-      <div class="sw-orb sw-orb-2"></div>
-      <div class="sw-orb sw-orb-3"></div>
-      <div class="sw-orb sw-orb-4"></div>
-    </div>
-    <div class="sw-content">
-      <div class="sw-logo-wrap show">
-        <img src="/logo.jpg" alt="مدار" class="sw-logo" />
-        <div class="sw-logo-glow"></div>
-        <div class="sw-logo-ring"></div>
+  <!-- ============ SPLASH ============ -->
+  <div v-if="splashVisible" class="sp" :class="{ 'sp-exit': splashFading }" @click="skipSplash">
+    <canvas ref="spCanvas" class="sp-canvas"></canvas>
+    <div class="sp-overlay"></div>
+
+    <div class="sp-content">
+      <!-- Logo -->
+      <div class="sp-logo-box">
+        <div class="sp-logo-rings">
+          <div class="sp-ring sp-ring-1"></div>
+          <div class="sp-ring sp-ring-2"></div>
+        </div>
+        <img src="/logo.jpg" alt="مدار" class="sp-logo" />
       </div>
-      <h1 class="sw-title">مدار</h1>
-      <p class="sw-subtitle">دليل الأطباء والعيادات الطبية الأول في العراق</p>
-      <div class="sw-features">
-        <div v-for="(feat, i) in splashFeatures" :key="i" class="sw-feat" :class="{ show: splashFeatIndex >= i }">
-          <div class="sw-feat-icon"><span v-html="feat.icon"></span></div>
-          <div class="sw-feat-text">
-            <strong>{{ feat.title }}</strong>
-            <span>{{ feat.desc }}</span>
-          </div>
+
+      <!-- Brand name -->
+      <div class="sp-brand">
+        <span class="sp-ch">مدار</span>
+      </div>
+
+      <!-- Divider line -->
+      <div class="sp-divider" :class="{ show: showEl >= 0 }"></div>
+
+      <!-- Tagline -->
+      <p class="sp-tagline" :class="{ show: showEl >= 1 }">دليل الأطباء والعيادات الأول في العراق</p>
+
+      <!-- Features: appear one by one -->
+      <div class="sp-feats">
+        <div v-for="(f, i) in spFeats" :key="i" class="sp-feat" :class="{ show: showEl >= i + 2 }">
+          <div class="sp-feat-dot" :style="{ background: f.color }"></div>
+          <span class="sp-feat-text">{{ f.text }}</span>
         </div>
       </div>
-      <div class="sw-progress-wrap">
-        <div class="sw-progress-bar" :style="{ width: splashProgress + '%' }"></div>
+
+      <!-- Stats -->
+      <div class="sp-stats" :class="{ show: showEl >= 6 }">
+        <div class="sp-stat">
+          <span class="sp-stat-val">+١٠٠٠</span>
+          <span class="sp-stat-lbl">طبيب</span>
+        </div>
+        <div class="sp-stat-sep"></div>
+        <div class="sp-stat">
+          <span class="sp-stat-val">+٥٠٠</span>
+          <span class="sp-stat-lbl">عيادة</span>
+        </div>
+        <div class="sp-stat-sep"></div>
+        <div class="sp-stat">
+          <span class="sp-stat-val">مجاني</span>
+          <span class="sp-stat-lbl">للمرضى</span>
+        </div>
       </div>
-      <p class="sw-loading-text">{{ splashLoadingText }}</p>
     </div>
-    <div class="sw-bottom">
-      <div class="sw-bottom-dots">
-        <span class="sw-dot"></span>
-        <span class="sw-dot"></span>
-        <span class="sw-dot"></span>
-      </div>
-      <p class="sw-bottom-text">جاري تحميل البيانات...</p>
+
+    <!-- Progress -->
+    <div class="sp-bar"><div class="sp-bar-fill" :style="{ width: splashProgress + '%' }"></div></div>
+
+    <!-- Dots -->
+    <div class="sp-dots">
+      <span v-for="i in 7" :key="i" class="sp-dot" :class="{ on: showEl >= i - 1 }"></span>
     </div>
+
+    <div class="sp-skip">اضغط للتخطي</div>
   </div>
 
   <!-- ============ MAIN CONTENT ============ -->
@@ -182,6 +206,12 @@
       <button class="tb-cat-btn" :class="{ active: activeCategory === 'doctors' }" @click="setCategory('doctors')">
         الأطباء
       </button>
+      <button class="tb-cat-btn" :class="{ active: activeCategory === 'specialized' }" @click="setCategory('specialized')">
+        عيادات تخصصية
+      </button>
+      <button class="tb-cat-btn" :class="{ active: activeCategory === 'laser' }" @click="setCategory('laser')">
+        ليزر وتجميل
+      </button>
       <button class="tb-cat-btn" :class="{ active: activeCategory === 'pharmacy' }" @click="setCategory('pharmacy')">
         الصيدليات
       </button>
@@ -256,14 +286,20 @@
                 <template v-else-if="doc.facility_type === 'physio'">
                   <span class="tb-card-type-emoji">🦴</span> {{ doc.doctor_name || 'علاج طبيعي' }}
                 </template>
+                <template v-else-if="doc.facility_type === 'laser'">
+                  <span class="tb-card-type-emoji">✨</span> {{ doc.doctor_name || 'ليزر وتجميل' }}
+                </template>
+                <template v-else-if="doc.facility_type === 'specialized'">
+                  <span class="tb-card-type-emoji">🏛️</span> {{ doc.doctor_name || 'عيادة تخصصية' }}
+                </template>
                 <template v-else>د. {{ doc.doctor_name || 'طبيب' }}</template>
                 <svg v-if="doc.verified" class="tb-card-verified" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="#0d9488" stroke="#fff" stroke-width="1.5" /><path d="M7.5 12.5l3 3 6-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
               </h3>
               <span v-if="doc.is_24h" class="tb-card-badge-24h">24 ساعة</span>
-              <span v-else-if="doc.is_directory_listing" class="tb-card-badge-listing">غير مشترك</span>
+              <span v-else-if="doc.is_directory_listing" class="tb-card-badge-listing">دليل</span>
               <span v-else class="tb-card-dot" :class="isAvailableNow(doc) ? 'avail' : 'closed'" :title="isAvailableNow(doc) ? 'متاح الآن' : 'مغلق حالياً'"></span>
             </div>
-            <span class="tb-card-spec" :style="{ color: getFacilityColor(doc) }">{{ doc.specialty || (doc.facility_type === 'pharmacy' ? 'صيدلية' : doc.facility_type === 'hospital' ? 'مستشفى' : doc.facility_type === 'lab' ? 'مختبر' : doc.facility_type === 'physio' ? 'علاج طبيعي' : 'طبيب عام') }}</span>
+            <span class="tb-card-spec" :style="{ color: getFacilityColor(doc) }">{{ doc.specialty || (doc.facility_type === 'pharmacy' ? 'صيدلية' : doc.facility_type === 'hospital' ? 'مستشفى' : doc.facility_type === 'lab' ? 'مختبر' : doc.facility_type === 'physio' ? 'علاج طبيعي' : doc.facility_type === 'laser' ? 'ليزر وتجميل' : doc.facility_type === 'specialized' ? 'عيادة تخصصية' : 'طبيب عام') }}</span>
             <div class="tb-card-bottom">
               <span v-if="doc.governorate || doc.area" class="tb-card-location">
                 <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
@@ -278,6 +314,8 @@
             <span v-else-if="doc.facility_type === 'hospital'" style="font-size:1.5rem">🏥</span>
             <span v-else-if="doc.facility_type === 'lab'" style="font-size:1.5rem">🔬</span>
             <span v-else-if="doc.facility_type === 'physio'" style="font-size:1.5rem">🦴</span>
+            <span v-else-if="doc.facility_type === 'laser'" style="font-size:1.5rem">✨</span>
+            <span v-else-if="doc.facility_type === 'specialized'" style="font-size:1.5rem">🏛️</span>
             <span v-else>{{ initials(doc.doctor_name) }}</span>
           </div>
         </div>
@@ -305,7 +343,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { doctorProfilesRepo, directoryListingsRepo } from '@/services/clinic'
 import { collection, getDocs, doc, getDoc, setDoc, increment, serverTimestamp } from 'firebase/firestore'
@@ -313,48 +351,135 @@ import { db } from '@/firebase/config'
 
 const router = useRouter()
 
-const splashVisible = ref(false)
+const splashVisible = ref(!sessionStorage.getItem('madar_splash_shown'))
 const splashFading = ref(false)
 const splashProgress = ref(0)
-const splashFeatIndex = ref(-1)
-const splashLoadingText = ref('جاري التجهيز...')
+const showEl = ref(-1)
+const spCanvas = ref(null)
 let splashTimer = null
+let spAnim = null
+let spResize = null
 
-const splashFeatures = [
-  { title: 'ابحث عن طبيبك', desc: 'دليل شامل بأكثر من ١٠٠٠ طبيب وعيادة', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>' },
-  { title: 'احجز موعدك', desc: 'حجز مباشر وسريع بدون انتظار', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' },
-  { title: 'إدارة عيادتك', desc: 'نظام متكامل للمرضى والمواعيد والمحاسبة', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
-  { title: 'المختبرات والمستشفيات', desc: 'ابحث عن أقرب مختبر أو مستشفى', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M12 3v7M5 21h14M7 10l2 7h6l2-7"/></svg>' }
+const spFeats = [
+  { text: 'ابحث عن طبيبك بسهولة', color: '#14b8a6' },
+  { text: 'احجز موعدك في ثوانٍ', color: '#1f6feb' },
+  { text: 'تابع حجوزاتك لحظة بلحظة', color: '#a78bfa' },
+  { text: 'تواصل مع العيادة مباشرة', color: '#f59e0b' },
 ]
-const splashTexts = [
-  { at: 800, text: 'جاري تحميل الأطباء...' },
-  { at: 1800, text: 'جاري تحميل العيادات...' },
-  { at: 3000, text: 'جاري تحميل البيانات...' },
-  { at: 4200, text: 'جاري تجهيز الدليل...' },
-  { at: 5500, text: 'جاري التحميل...' },
-  { at: 6200, text: 'جاهز!' }
-]
+
+function skipSplash() { if (!splashFading.value) endSplash() }
+
+function endSplash() {
+  splashFading.value = true
+  if (splashTimer) { clearInterval(splashTimer); splashTimer = null }
+  if (spAnim) { cancelAnimationFrame(spAnim); spAnim = null }
+  if (spResize) { window.removeEventListener('resize', spResize); spResize = null }
+  setTimeout(() => { splashVisible.value = false }, 600)
+}
 
 function startSplash() {
   splashVisible.value = true
+  showEl.value = -1
+  splashProgress.value = 0
+  nextTick(() => initSplashCanvas())
+
+  const milestones = [
+    { t: 500, el: 0 },
+    { t: 1400, el: 1 },
+    { t: 2200, el: 2 },
+    { t: 3000, el: 3 },
+    { t: 3700, el: 4 },
+    { t: 4500, el: 5 },
+    { t: 5200, el: 6 },
+  ]
+
   const total = 7000
   let elapsed = 0
   splashTimer = setInterval(() => {
-    elapsed += 50
+    elapsed += 40
     splashProgress.value = Math.min((elapsed / total) * 100, 100)
-    if (elapsed >= 500 && splashFeatIndex.value < 0) splashFeatIndex.value = 0
-    if (elapsed >= 1500 && splashFeatIndex.value < 1) splashFeatIndex.value = 1
-    if (elapsed >= 2800 && splashFeatIndex.value < 2) splashFeatIndex.value = 2
-    if (elapsed >= 4000 && splashFeatIndex.value < 3) splashFeatIndex.value = 3
-    for (const t of splashTexts) { if (elapsed >= t.at) splashLoadingText.value = t.text }
-    if (splashProgress.value >= 100) {
-      clearInterval(splashTimer)
-      setTimeout(() => {
-        splashFading.value = true
-        setTimeout(() => { splashVisible.value = false }, 500)
-      }, 300)
+    for (const m of milestones) {
+      if (elapsed >= m.t && showEl.value < m.el) showEl.value = m.el
     }
-  }, 50)
+    if (elapsed >= total) {
+      clearInterval(splashTimer)
+      splashTimer = null
+      endSplash()
+    }
+  }, 40)
+}
+
+function initSplashCanvas() {
+  const canvas = spCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  const dpr = Math.min(window.devicePixelRatio || 1, 2)
+  let W = 0, H = 0, stopped = false
+
+  function resize() {
+    W = window.innerWidth
+    H = window.innerHeight
+    canvas.width = W * dpr
+    canvas.height = H * dpr
+    canvas.style.width = W + 'px'
+    canvas.style.height = H + 'px'
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  }
+  resize()
+  spResize = resize
+  window.addEventListener('resize', resize)
+
+  const dots = []
+  const n = Math.min(Math.floor((W * H) / 10000), 50)
+  for (let i = 0; i < n; i++) {
+    const blue = Math.random() > 0.4
+    dots.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.5 + 0.5,
+      vx: (Math.random() - 0.5) * 0.2,
+      vy: (Math.random() - 0.5) * 0.2,
+      a: Math.random() * 0.3 + 0.08,
+      c: blue ? '20,184,166' : '17,80,201',
+    })
+  }
+
+  let tick = 0
+  function loop() {
+    if (stopped) return
+    tick++
+    ctx.clearRect(0, 0, W, H)
+    for (const d of dots) {
+      d.x += d.vx
+      d.y += d.vy
+      if (d.x < -5) d.x = W + 5
+      if (d.x > W + 5) d.x = -5
+      if (d.y < -5) d.y = H + 5
+      if (d.y > H + 5) d.y = -5
+      const g = 0.7 + Math.sin(tick * 0.015 + d.x * 0.005) * 0.3
+      ctx.beginPath()
+      ctx.arc(d.x, d.y, d.r * g, 0, 6.283)
+      ctx.fillStyle = `rgba(${d.c},${d.a * g})`
+      ctx.fill()
+    }
+    for (let i = 0; i < dots.length; i++) {
+      for (let j = i + 1; j < dots.length; j++) {
+        const dx = dots[i].x - dots[j].x
+        const dy = dots[i].y - dots[j].y
+        const dd = dx * dx + dy * dy
+        if (dd < 12000) {
+          ctx.beginPath()
+          ctx.moveTo(dots[i].x, dots[i].y)
+          ctx.lineTo(dots[j].x, dots[j].y)
+          ctx.strokeStyle = `rgba(148,163,184,${0.035 * (1 - dd / 12000)})`
+          ctx.lineWidth = 0.5
+          ctx.stroke()
+        }
+      }
+    }
+    spAnim = requestAnimationFrame(loop)
+  }
+  loop()
 }
 
 const loading = ref(true)
@@ -380,7 +505,7 @@ let touchStartX = 0
 
 const governorates = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'القادسية', 'بابل', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار', 'دهوك', 'السليمانية', 'ميسان', 'ذي قار', 'واسط', 'المثنى', 'حلبجة']
 
-const categoryLabels = { doctors: 'أطباء مدار', pharmacy: 'الصيدليات', hospital: 'المستشفيات', lab: 'المختبرات', physio: 'العلاج الطبيعي' }
+const categoryLabels = { doctors: 'أطباء مدار', specialized: 'عيادات تخصصية', laser: 'ليزر وتجميل', pharmacy: 'الصيدليات', hospital: 'المستشفيات', lab: 'المختبرات', physio: 'العلاج الطبيعي' }
 const categoryLabel = computed(() => categoryLabels[activeCategory.value] || 'أطباء مدار')
 
 const specialtyColors = { 'باطنية': '#4f46e5', 'قلب': '#e11d48', 'أمراض قلب': '#e11d48', 'عظام': '#059669', 'جراحة': '#d97706', 'جراح عام': '#d97706', 'أطفال': '#0284c7', 'جلدية': '#7c3aed', 'نساء': '#db2777', 'توليد': '#db2777', 'عيون': '#0891b2', 'أسنان': '#0d9488', 'طب أسنان': '#0d9488', 'أنف وأذن': '#6366f1', 'مسالك بولية': '#0ea5e9', 'عصبية': '#8b5cf6', 'عام': '#475569', 'طب عام': '#475569', 'صيدلية': '#d69e1f' }
@@ -412,11 +537,13 @@ const allDoctors = computed(() => {
 const categoryList = computed(() => {
   return allDoctors.value.filter(d => {
     const ft = d.facility_type
+    if (activeCategory.value === 'specialized') return !!d.is_specialized || ft === 'specialized'
+    if (activeCategory.value === 'laser') return !!d.is_laser || ft === 'laser'
     if (activeCategory.value === 'pharmacy') return !!d.is_pharmacy || ft === 'pharmacy'
     if (activeCategory.value === 'lab') return !!d.is_lab || ft === 'lab'
     if (activeCategory.value === 'hospital') return !!d.is_hospital || ft === 'hospital'
     if (activeCategory.value === 'physio') return !!d.is_physio || ft === 'physio'
-    return !d.is_lab && !d.is_hospital && !d.is_pharmacy && !d.is_physio && ft !== 'pharmacy' && ft !== 'lab' && ft !== 'hospital' && ft !== 'physio'
+    return !d.is_lab && !d.is_hospital && !d.is_pharmacy && !d.is_physio && !d.is_laser && !d.is_specialized && ft !== 'pharmacy' && ft !== 'lab' && ft !== 'hospital' && ft !== 'physio' && ft !== 'laser' && ft !== 'specialized'
   })
 })
 
@@ -508,6 +635,8 @@ function getTypeIcon24h(doc) {
   if (ft === 'hospital') return '🏥'
   if (ft === 'lab') return '🔬'
   if (ft === 'physio') return '🦴'
+  if (ft === 'laser') return '✨'
+  if (ft === 'specialized') return '🏛️'
   return '🩺'
 }
 
@@ -517,6 +646,8 @@ function getTypeLabel24h(doc) {
   if (ft === 'hospital') return 'مستشفى'
   if (ft === 'lab') return 'مختبر'
   if (ft === 'physio') return 'علاج طبيعي'
+  if (ft === 'laser') return 'ليزر وتجميل'
+  if (ft === 'specialized') return 'عيادة تخصصية'
   return doc.specialty || 'طبيب'
 }
 
@@ -526,6 +657,8 @@ function getFacilityColor(doc) {
   if (ft === 'hospital') return '#e11d48'
   if (ft === 'lab') return '#0891b2'
   if (ft === 'physio') return '#7c3aed'
+  if (ft === 'laser') return '#ec4899'
+  if (ft === 'specialized') return '#0d9488'
   return getSpecialtyColor(doc.specialty)
 }
 
@@ -535,6 +668,8 @@ function getFacilityBg(doc) {
   if (ft === 'hospital') return 'linear-gradient(135deg,#ffe4e6,#fecdd3)'
   if (ft === 'lab') return 'linear-gradient(135deg,#cffafe,#a5f3fc)'
   if (ft === 'physio') return 'linear-gradient(135deg,#ede9fe,#ddd6fe)'
+  if (ft === 'laser') return 'linear-gradient(135deg,#fce7f3,#fbcfe8)'
+  if (ft === 'specialized') return 'linear-gradient(135deg,#ccfbf1,#a7f3d0)'
   return ''
 }
 function onTouchStart(e) { touchStartX = e.touches[0].clientX }
@@ -625,6 +760,8 @@ onMounted(async () => {
 onUnmounted(() => {
   if (sliderTimer) clearInterval(sliderTimer)
   if (splashTimer) clearInterval(splashTimer)
+  if (spAnim) cancelAnimationFrame(spAnim)
+  if (spResize) window.removeEventListener('resize', spResize)
 })
 </script>
 
@@ -865,56 +1002,73 @@ onUnmounted(() => {
   .tb-footer-inner{flex-direction:column;gap:8px;text-align:center}
 }
 
-/* ============ SPLASH OVERLAY ============ */
-.sw{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#064e3b 0%,#0d9488 35%,#0f766e 70%,#14b8a6 100%);z-index:9999;overflow:hidden;transition:opacity .5s ease,transform .5s ease}
-.sw-fade{opacity:0;transform:scale(1.06)}
-.sw-bg{position:absolute;inset:0;pointer-events:none}
-.sw-orb{position:absolute;border-radius:50%;filter:blur(80px)}
-.sw-orb-1{width:400px;height:400px;background:rgba(20,184,166,0.2);top:-120px;right:-80px;animation:swOrbA 7s ease-in-out infinite}
-.sw-orb-2{width:350px;height:350px;background:rgba(6,78,59,0.25);bottom:-80px;left:-60px;animation:swOrbB 9s ease-in-out infinite}
-.sw-orb-3{width:200px;height:200px;background:rgba(214,158,31,0.1);top:35%;left:55%;animation:swOrbC 8s ease-in-out infinite}
-.sw-orb-4{width:250px;height:250px;background:rgba(13,148,136,0.15);top:60%;right:20%;animation:swOrbA 10s ease-in-out infinite reverse}
-@keyframes swOrbA{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,40px)}}
-@keyframes swOrbB{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-30px)}}
-@keyframes swOrbC{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,-30px)}}
-.sw-content{position:relative;text-align:center;z-index:2;animation:swFadeUp .7s ease-out both;padding:0 24px;max-width:360px}
-@keyframes swFadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-.sw-logo-wrap{position:relative;width:100px;height:100px;margin:0 auto 20px;opacity:0;transform:scale(0.7);transition:all .6s cubic-bezier(0.34,1.56,0.64,1)}
-.sw-logo-wrap.show{opacity:1;transform:scale(1)}
-.sw-logo{width:100px;height:100px;border-radius:28px;object-fit:cover;position:relative;z-index:2;box-shadow:0 10px 50px rgba(0,0,0,0.3);animation:swLogoFloat 3s ease-in-out infinite}
-.sw-logo-glow{position:absolute;inset:-12px;border-radius:36px;background:radial-gradient(circle,rgba(13,148,136,0.35),transparent 70%);animation:swGlowPulse 2.5s ease-in-out infinite}
-.sw-logo-ring{position:absolute;inset:-18px;border-radius:40px;border:2px solid rgba(255,255,255,0.1);animation:swRingPulse 3s ease-in-out infinite}
-@keyframes swLogoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-@keyframes swGlowPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
-@keyframes swRingPulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.6;transform:scale(1.05)}}
-.sw-title{font:900 2.4rem/1 'Segoe UI',sans-serif;color:#fff;margin:0 0 8px;letter-spacing:-1px;text-shadow:0 2px 24px rgba(0,0,0,0.2)}
-.sw-subtitle{font:500 0.88rem/1.4 'Segoe UI',sans-serif;color:rgba(255,255,255,0.6);margin:0 0 28px}
-.sw-features{display:flex;flex-direction:column;gap:10px;margin:0 auto 28px;max-width:320px}
-.sw-feat{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(8px);opacity:0;transform:translateY(16px);transition:all .45s cubic-bezier(0.34,1.56,0.64,1)}
-.sw-feat.show{opacity:1;transform:translateY(0)}
-.sw-feat-icon{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05));display:grid;place-items:center;color:#fff;flex-shrink:0}
-.sw-feat-text{display:flex;flex-direction:column;gap:1px;text-align:right}
-.sw-feat-text strong{font:700 0.82rem 'Tajawal',sans-serif;color:rgba(255,255,255,0.95)}
-.sw-feat-text span{font:500 0.7rem 'Tajawal',sans-serif;color:rgba(255,255,255,0.5);line-height:1.3}
-.sw-progress-wrap{width:min(280px,80vw);height:4px;background:rgba(255,255,255,0.1);border-radius:4px;margin:0 auto 12px;overflow:hidden}
-.sw-progress-bar{height:100%;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,0.8) 100%);border-radius:4px;transition:width .05s linear;box-shadow:0 0 12px rgba(255,255,255,0.4)}
-.sw-loading-text{font:600 0.78rem 'Tajawal',sans-serif;color:rgba(255,255,255,0.45);margin:0;min-height:1.2em;transition:all .3s}
-.sw-bottom{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);text-align:center;z-index:2}
-.sw-bottom-dots{display:flex;justify-content:center;gap:6px;margin-bottom:8px}
-.sw-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.3);animation:swDotBounce 1.4s ease-in-out infinite}
-.sw-dot:nth-child(2){animation-delay:0.2s}
-.sw-dot:nth-child(3){animation-delay:0.4s}
-@keyframes swDotBounce{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1.2);opacity:1}}
-.sw-bottom-text{font:500 0.7rem 'Tajawal',sans-serif;color:rgba(255,255,255,0.3);margin:0}
+/* ============ SPLASH ============ */
+.sp{position:fixed;inset:0;z-index:9999;background:#0F1117;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:opacity .6s cubic-bezier(.4,0,.2,1),transform .6s cubic-bezier(.4,0,.2,1)}
+.sp-exit{opacity:0;transform:scale(1.05);pointer-events:none}
+.sp-canvas{position:absolute;inset:0;z-index:0}
+.sp-overlay{position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse at 50% 40%,rgba(20,184,166,0.08) 0%,transparent 60%);pointer-events:none}
+
+/* Content */
+.sp-content{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 24px}
+
+/* Logo */
+.sp-logo-box{position:relative;width:120px;height:120px;margin-bottom:20px}
+.sp-logo{width:120px;height:120px;border-radius:32px;object-fit:cover;position:relative;z-index:2;box-shadow:0 0 60px rgba(20,184,166,0.25),0 0 30px rgba(17,80,201,0.15),0 20px 50px rgba(0,0,0,0.5);animation:spLogoIn .8s cubic-bezier(.16,1,.3,1) both}
+.sp-logo-rings{position:absolute;inset:0;z-index:1}
+.sp-ring{position:absolute;border-radius:50%;border:1.5px solid rgba(20,184,166,0.12);top:50%;left:50%;transform:translate(-50%,-50%)}
+.sp-ring-1{width:150px;height:150px;animation:spRing 4s ease-in-out infinite}
+.sp-ring-2{width:190px;height:190px;border-color:rgba(17,80,201,0.08);animation:spRing 4s ease-in-out infinite .8s}
+@keyframes spLogoIn{from{opacity:0;transform:scale(0.3) translateY(20px);filter:blur(8px)}to{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}}
+@keyframes spRing{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.3}50%{transform:translate(-50%,-50%) scale(1.1);opacity:.7}}
+
+/* Brand name */
+.sp-brand{margin-bottom:16px}
+.sp-ch{font-size:3.2rem;font-weight:900;color:#fff;letter-spacing:-2px;display:inline-block;animation:spCh .6s cubic-bezier(.16,1,.3,1) .2s both}
+@keyframes spCh{from{opacity:0;filter:blur(8px);transform:translateY(12px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+
+/* Divider */
+.sp-divider{width:0;height:2px;background:linear-gradient(90deg,transparent,#14b8a6,transparent);margin-bottom:14px;transition:width .8s cubic-bezier(.16,1,.3,1)}
+.sp-divider.show{width:100px}
+
+/* Tagline */
+.sp-tagline{font-size:clamp(.9rem,2.8vw,1.2rem);font-weight:600;color:rgba(255,255,255,0.45);margin:0 0 28px;opacity:0;transform:translateY(12px);transition:all .5s cubic-bezier(.16,1,.3,1)}
+.sp-tagline.show{opacity:1;transform:translateY(0)}
+
+/* Features */
+.sp-feats{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;width:100%;max-width:320px}
+.sp-feat{display:flex;align-items:center;gap:12px;opacity:0;transform:translateX(30px);transition:all .45s cubic-bezier(.16,1,.3,1)}
+.sp-feat.show{opacity:1;transform:translateX(0)}
+.sp-feat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}
+.sp-feat-text{font-size:.88rem;font-weight:700;color:rgba(255,255,255,0.85);white-space:nowrap}
+
+/* Stats */
+.sp-stats{display:flex;align-items:center;gap:20px;opacity:0;transform:translateY(12px);transition:all .5s cubic-bezier(.16,1,.3,1)}
+.sp-stats.show{opacity:1;transform:translateY(0)}
+.sp-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sp-stat-val{font-size:1.1rem;font-weight:900;background:linear-gradient(135deg,#14b8a6,#1f6feb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sp-stat-lbl{font-size:.65rem;font-weight:600;color:rgba(255,255,255,0.3)}
+.sp-stat-sep{width:1px;height:24px;background:rgba(255,255,255,0.08)}
+
+/* Progress bar */
+.sp-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.04);z-index:10}
+.sp-bar-fill{height:100%;background:linear-gradient(90deg,#14b8a6,#1f6feb);transition:width .04s linear;box-shadow:0 0 10px rgba(20,184,166,0.4)}
+
+/* Dots */
+.sp-dots{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10}
+.sp-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.1);transition:all .3s ease}
+.sp-dot.on{background:#14b8a6;box-shadow:0 0 6px rgba(20,184,166,0.5);transform:scale(1.3)}
+
+/* Skip */
+.sp-skip{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:.68rem;font-weight:600;color:rgba(255,255,255,0.12);z-index:10;white-space:nowrap}
+
+/* Mobile */
 @media(max-width:480px){
-  .sw-title{font-size:2rem}
-  .sw-subtitle{font-size:.82rem}
-  .sw-logo-wrap,.sw-logo{width:84px;height:84px}
-  .sw-logo{border-radius:24px}
-  .sw-features{max-width:280px}
-  .sw-feat{padding:10px 12px}
-  .sw-feat-icon{width:36px;height:36px}
-  .sw-feat-text strong{font-size:.78rem}
-  .sw-feat-text span{font-size:.68rem}
+  .sp-logo{width:96px;height:96px;border-radius:26px}
+  .sp-logo-box{width:96px;height:96px}
+  .sp-ring-1{width:125px;height:125px}
+  .sp-ring-2{width:155px;height:155px}
+  .sp-ch{font-size:2.6rem}
+  .sp-feats{max-width:280px}
+  .sp-stat-val{font-size:1rem}
 }
 </style>

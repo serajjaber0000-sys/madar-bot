@@ -566,11 +566,13 @@ const typeColors = {
   pharmacy: { main: '#d69e1f', light: '#fef9e7', dark: '#92400e', bg: '#d69e1f' },
   hospital: { main: '#dc2626', light: '#fef2f2', dark: '#991b1b', bg: '#dc2626' },
   lab: { main: '#7c3aed', light: '#ede9fe', dark: '#5b21b6', bg: '#7c3aed' },
-  physio: { main: '#0d9488', light: '#ccfbf1', dark: '#065f46', bg: '#0d9488' }
+  physio: { main: '#0d9488', light: '#ccfbf1', dark: '#065f46', bg: '#0d9488' },
+  laser: { main: '#ec4899', light: '#fce7f3', dark: '#9d174d', bg: '#ec4899' },
+  specialized: { main: '#0d9488', light: '#ccfbf1', dark: '#065f46', bg: '#0d9488' }
 }
-const typeLabels = { doctor: 'طبيب', pharmacy: 'صيدلية', hospital: 'مستشفى', lab: 'مختبر', physio: 'علاج طبيعي' }
-const typeLabelsPlural = { doctor: 'الأطباء', pharmacy: 'الصيدليات', hospital: 'المستشفيات', lab: 'المختبرات', physio: 'مراكز العلاج الطبيعي' }
-const defaultSpecs = { doctor: 'طبيب عام', pharmacy: 'صيدلية عامة', hospital: 'مستشفى', lab: 'مختبر طبي', physio: 'علاج طبيعي' }
+const typeLabels = { doctor: 'طبيب', pharmacy: 'صيدلية', hospital: 'مستشفى', lab: 'مختبر', physio: 'علاج طبيعي', laser: 'ليزر وتجميل', specialized: 'عيادة تخصصية' }
+const typeLabelsPlural = { doctor: 'الأطباء', pharmacy: 'الصيدليات', hospital: 'المستشفيات', lab: 'المختبرات', physio: 'مراكز العلاج الطبيعي', laser: 'مراكز الليزر والتجميل', specialized: 'العيادات التخصصية' }
+const defaultSpecs = { doctor: 'طبيب عام', pharmacy: 'صيدلية عامة', hospital: 'مستشفى', lab: 'مختبر طبي', physio: 'علاج طبيعي', laser: 'ليزر وتجميل', specialized: 'عيادة تخصصية' }
 
 const ft = computed(() => profile.value?.facility_type || 'doctor')
 const facilityLabel = computed(() => typeLabels[ft.value] || 'طبيب')
